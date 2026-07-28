@@ -1,0 +1,17 @@
+{
+    "settings_version": 2.66,
+    "prompt": "Same woman as the start image, seated upright, locked face. Slowly uncross legs: lower the top knee until both knees are level, then slide knees apart left-right until thighs sit side by side with a clear gap. Hands leave the knee. Feet down. No kick. Static camera.",
+    "resolution": "832x480",
+    "flow_shift": 5,
+    "sample_solver": "unipc",
+    "image_prompt_type": "S",
+    "sliding_window_size": 121,
+    "sliding_window_overlap": 1,
+    "sliding_window_color_correction_strength": 0,
+    "video_length": 33,
+    "guidance_scale": 5,
+    "num_inference_steps": 28,
+    "seed": 33,
+    "force_fps": "24",
+    "negative_prompt": "hand stuck on knee, kick, raised leg, lying down, frozen cross, thighs stacked, morphing face, camera move, zoom, pan"
+}

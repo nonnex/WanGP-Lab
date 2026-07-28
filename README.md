@@ -36,11 +36,13 @@ cd ~/AI/Projects/WanGP-Lab
 
 # first time / after pull of suite only:
 bash suite/scripts/bootstrap_wangp.sh   # clone wangp if missing
-bash suite/scripts/install_bridge.sh    # copy finetunes + plugin into wangp/
+bash suite/scripts/install_bridge.sh    # finetunes + plugin + settings + assets → wangp/
 bash suite/scripts/status.sh
 bash suite/scripts/start_wangp.sh       # profile 4 + sage
 # → http://localhost:7860
 ```
+
+**Note:** WanGP no longer lives under `_COMMON/VENDORS/Wan2GP` — only here: `wangp/`.
 
 ## Update WanGP upstream (no merge hell)
 

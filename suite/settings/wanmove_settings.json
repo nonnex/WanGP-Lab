@@ -1,0 +1,23 @@
+{
+    "settings_version": 2.66,
+    "prompt": "Same woman as the start image, seated upright, locked face. Slowly uncross legs: lower the top knee until both knees are level, then slide knees apart left-right until thighs sit side by side with a clear gap. Hands leave the knee and rest on the thigh or mattress beside the hip. Feet stay down. No kick, no lying flat. Static camera.",
+    "negative_prompt": "hand stuck on knee, hand glued to knee, frozen hand on leg, kick, raised leg, lying down, reclining flat, frozen cross, thighs stacked, legs stay crossed, morphing face, camera move, zoom, pan",
+    "resolution": "832x480",
+    "video_length": 49,
+    "num_inference_steps": 16,
+    "guidance_scale": 4.0,
+    "seed": 33,
+    "force_fps": "24",
+    "flow_shift": 7.0,
+    "sample_solver": "unipc",
+    "image_prompt_type": "S",
+    "prompt_enhancer": "",
+    "NAG_scale": 1,
+    "override_profile": -1,
+    "override_attention": "",
+    "skip_steps_cache_type": "",
+    "repeat_generation": 1,
+    "sliding_window_overlap": 1,
+    "sliding_window_color_correction_strength": 0,
+    "output_filename": "lab_wanmove_e01"
+}
