@@ -5,69 +5,56 @@ Operator suite: **WanGP cockpit** + **Lab motor** (ai-img-seq-kimi) + thin **bri
 ```
 WanGP-Lab/
   suite/     ← our code (finetunes, plugin, scripts, tools, docs)
-  wangp/     ← full Wan2GP checkout (local; not pushed with weights)
-  data/      ← suite cache / experiments
+  wangp/     ← Wan2GP checkout (local; weights not pushed)
+  data/      ← cache / experiments
   config/    ← suite.env
 ```
 
-## Layout
+## Quick start
 
-| Path | Role |
-|------|------|
-| `suite/finetunes/` | Mission model presets |
-| `suite/plugins/wan2gp-lab-bridge/` | Lab Bridge UI plugin |
-| `suite/scripts/` | install, start, gate, status |
-| `suite/tools/` | track builder, headless move |
-| `suite/docs/` | architecture |
-| `wangp/` | [deepbeepmeep/Wan2GP](https://github.com/deepbeepmeep/Wan2GP) clone + local `.venv` / `ckpts` |
-| `data/cache/wanmove/` | stills + trajectory `.npy` |
+```bash
+cd ~/AI/Projects/WanGP-Lab
+bash suite/scripts/bootstrap_wangp.sh    # if wangp/ missing
+bash suite/scripts/install_bridge.sh
+bash suite/scripts/start_wangp_ui.sh     # → http://localhost:7860
+```
+
+**Windows Desktop:** `bash suite/scripts/install_windows_shortcut.sh` → double-click **WanGP-Lab**.
+
+## Commands
+
+| | |
+|--|--|
+| Status | `bash suite/scripts/status.sh` |
+| UI | `bash suite/scripts/start_wangp_ui.sh` |
+| Tracks | `bash suite/scripts/build_tracks.sh 49` |
+| Headless Move | `bash suite/tools/run_move_e01.sh --frames 49 --steps 16` |
+| Gate | `bash suite/scripts/gate_output.sh <mp4>` |
 
 ## Venvs (never mix)
 
 | | |
 |--|--|
 | WanGP | `wangp/.venv` |
-| Lab motor | `$LAB_MOTOR_ROOT/pipeline/.venv` |
-
-## Quick start
-
-```bash
-cd ~/AI/Projects/WanGP-Lab
-
-# first time / after pull of suite only:
-bash suite/scripts/bootstrap_wangp.sh   # clone wangp if missing
-bash suite/scripts/install_bridge.sh    # finetunes + plugin + settings + assets → wangp/
-bash suite/scripts/status.sh
-bash suite/scripts/start_wangp.sh       # profile 4 + sage
-# → http://localhost:7860
-```
-
-**Note:** WanGP no longer lives under `_COMMON/VENDORS/Wan2GP` — only here: `wangp/`.
-
-## Update WanGP upstream (no merge hell)
-
-```bash
-cd wangp
-git fetch origin
-git pull --ff-only origin main
-cd ..
-bash suite/scripts/install_bridge.sh    # re-apply suite finetunes/plugin
-```
-
-Do **not** edit `wangp/defaults/` or `wangp/wgp.py` for suite features.
+| Lab | `$LAB_MOTOR_ROOT/pipeline/.venv` |
 
 ## Iterate ladder
 
-| L | Model | |
-|---|--------|--|
+| L | | |
+|---|--|--|
 | 0 | `lab_ti2v5b_fast_e01` | smoke |
 | 1 | `lab_wanmove_e01_smoke` | 33f×8 |
 | 2 | `lab_wanmove_e01` | 49f×16 + pose_gate |
 | 3 | multi-seed Move | |
-| 4 | lab-motor e12/ship | only after open_end PASS |
+| 4 | motor e12/ship | only after open_end PASS |
 
-## Git
+## Update WanGP upstream
 
-- This repo tracks **suite/** + config + docs + small data assets.
-- **`wangp/` weights, venv, outputs are gitignored** (see `.gitignore`).
-- Local `wangp/` stays a normal git clone of upstream Wan2GP.
+```bash
+cd wangp && git pull --ff-only origin main && cd ..
+bash suite/scripts/install_bridge.sh
+```
+
+Do **not** edit `wangp/defaults/` or `wangp/wgp.py` for suite features.
+
+Docs: [`suite/docs/SUITE_CRITICAL.md`](suite/docs/SUITE_CRITICAL.md) · [`suite/docs/README.md`](suite/docs/README.md)

@@ -1,7 +1,6 @@
 """Lab Bridge — WanGP plugin (Cockpit ↔ Motor).
 
-Runs Lab tools in pipeline/.venv only. Never imports heavy Lab/torch into WanGP process
-except lightweight path checks. Optional GPU release for analyze/gate if needed later.
+Lab tools run in pipeline/.venv only. Never import heavy Lab/torch into WanGP.
 """
 from __future__ import annotations
 
@@ -20,20 +19,19 @@ from shared.utils.plugins import WAN2GPPlugin
 PLUGIN_ID = "wan2gp-lab-bridge"
 PLUGIN_NAME = "Lab Bridge"
 
-# Defaults (overridable via env)
 DEFAULT_SUITE_ROOT = Path(
     os.environ.get("WANGP_LAB_ROOT", "/home/nick/AI/Projects/WanGP-Lab")
 )
 DEFAULT_LAB_ROOT = Path(
     os.environ.get(
-        "AIIMGSEQ_LAB_ROOT",
-        os.environ.get("LAB_MOTOR_ROOT", "/home/nick/AI/Projects/ai-img-seq-kimi"),
+        "LAB_MOTOR_ROOT",
+        os.environ.get("AIIMGSEQ_LAB_ROOT", "/home/nick/AI/Projects/ai-img-seq-kimi"),
     )
 )
 DEFAULT_WGP_ROOT = Path(
     os.environ.get(
-        "AIIMGSEQ_WANGP_ROOT",
-        os.environ.get("WANGP_ROOT", str(DEFAULT_SUITE_ROOT / "wangp")),
+        "WANGP_ROOT",
+        os.environ.get("AIIMGSEQ_WANGP_ROOT", str(DEFAULT_SUITE_ROOT / "wangp")),
     )
 )
 DEFAULT_SUITE_CACHE = Path(
@@ -42,6 +40,17 @@ DEFAULT_SUITE_CACHE = Path(
         str(DEFAULT_SUITE_ROOT / "data" / "cache" / "wanmove"),
     )
 )
+
+# Track builder: suite SoT, fallback motor lab/tools copy
+def _tracks_script(suite: Path, lab: Path) -> Path:
+    for p in (
+        suite / "suite" / "tools" / "mhr70_to_wanmove_tracks.py",
+        lab / "lab" / "tools" / "mhr70_to_wanmove_tracks.py",
+    ):
+        if p.is_file():
+            return p
+    return suite / "suite" / "tools" / "mhr70_to_wanmove_tracks.py"
+
 
 PROMPT_E01 = (
     "Same woman as the start image, seated upright, locked face. "
@@ -65,10 +74,9 @@ def _run_lab(lab: Path, args: list[str], timeout: int = 600) -> tuple[int, str]:
     py = _lab_py(lab)
     if not py.is_file():
         return 2, f"Lab venv missing: {py}"
-    cmd = [str(py), *args]
     try:
         p = subprocess.run(
-            cmd,
+            [str(py), *args],
             cwd=str(lab),
             capture_output=True,
             text=True,
@@ -87,10 +95,10 @@ class LabBridgePlugin(WAN2GPPlugin):
     def __init__(self):
         super().__init__()
         self.name = PLUGIN_NAME
-        self.version = "0.2.0"
+        self.version = "0.3.0"
         self.description = (
-            "Lab motor bridge: build Move tracks (SAM3D/MHR70), apply mission presets, "
-            "run pose_gate on outputs. Cockpit=WanGP, Motor=Lab."
+            "Lab motor bridge: Move tracks (SAM3D/MHR70), mission presets, pose_gate. "
+            "Cockpit=WanGP, Motor=Lab."
         )
 
     def setup_ui(self):
@@ -111,7 +119,12 @@ class LabBridgePlugin(WAN2GPPlugin):
     def create_ui(self, api_session=None):
         lab_default = str(DEFAULT_LAB_ROOT)
         wgp_default = str(DEFAULT_WGP_ROOT)
-        cache = DEFAULT_SUITE_CACHE if DEFAULT_SUITE_CACHE.is_dir() else (DEFAULT_LAB_ROOT / "_data" / "cache" / "wanmove")
+        suite_default = str(DEFAULT_SUITE_ROOT)
+        cache = (
+            DEFAULT_SUITE_CACHE
+            if DEFAULT_SUITE_CACHE.is_dir()
+            else (DEFAULT_SUITE_ROOT / "data" / "cache" / "wanmove")
+        )
         still_default = str(cache / "still_675_832x480.jpg")
         tracks_default = str(cache / "tracks_e01_open_hands_t49.npy")
         analysis_default = str(DEFAULT_LAB_ROOT / "_data" / "analysis" / "0009")
@@ -125,32 +138,28 @@ class LabBridgePlugin(WAN2GPPlugin):
             gr.Markdown(
                 "## Lab Bridge\n"
                 "**WanGP** = Cockpit · **Lab** = Motor (SAM3D / tracks / pose_gate)\n\n"
-                "Does not modify WanGP core. Lab tools run in `pipeline/.venv` only."
+                "Lab tools run in `pipeline/.venv` only. "
+                f"Suite cache: `{cache}`"
             )
             with gr.Accordion("Paths", open=False):
-                lab_root = gr.Textbox(label="Lab root", value=lab_default)
+                suite_root = gr.Textbox(label="Suite root (WanGP-Lab)", value=suite_default)
+                lab_root = gr.Textbox(label="Lab motor root", value=lab_default)
                 wgp_root = gr.Textbox(label="WanGP root", value=wgp_default)
                 analysis_dir = gr.Textbox(
                     label="SAM3D analysis dir (sam3d_body.npz)",
                     value=analysis_default,
                 )
                 src_still = gr.Textbox(
-                    label="Full-res source still (for cover-crop coords)",
+                    label="Full-res source still (cover-crop coords)",
                     value=src_still_default,
                 )
                 out_still = gr.Textbox(label="Target still 832×480", value=still_default)
                 out_tracks = gr.Textbox(label="Tracks .npy out", value=tracks_default)
 
             with gr.Row():
-                frames = gr.Dropdown(
-                    choices=[33, 49, 81],
-                    value=49,
-                    label="Track / video frames",
-                )
+                frames = gr.Dropdown(choices=[33, 49, 81], value=49, label="Frames")
                 steps = gr.Dropdown(
-                    choices=[8, 12, 16, 24, 30],
-                    value=16,
-                    label="Steps (for preset apply)",
+                    choices=[8, 12, 16, 24, 30], value=16, label="Steps (preset)"
                 )
                 seed = gr.Number(value=33, label="Seed", precision=0)
 
@@ -158,54 +167,56 @@ class LabBridgePlugin(WAN2GPPlugin):
                 btn_paths = gr.Button("Check paths")
                 btn_tracks = gr.Button("1 · Build tracks (Lab)", variant="primary")
                 btn_preset_move = gr.Button("2 · Apply Move e01 preset")
-                btn_preset_fast = gr.Button("2b · Apply FastWan smoke preset")
+                btn_preset_fast = gr.Button("2b · FastWan smoke preset")
 
             with gr.Row():
-                btn_goto = gr.Button("3 · Open Media tab → Generate there")
-                btn_switch_move = gr.Button("Switch model → lab_wanmove_e01")
-                btn_switch_fast = gr.Button("Switch model → lab_ti2v5b_fast_e01")
+                btn_goto = gr.Button("3 · Open Media tab")
+                btn_switch_move = gr.Button("Model → lab_wanmove_e01")
+                btn_switch_fast = gr.Button("Model → lab_ti2v5b_fast_e01")
 
-            gr.Markdown(
-                "### After Generate\n"
-                "Paste WanGP output video path (or frames dir), then run gate."
-            )
+            gr.Markdown("### After Generate — paste mp4 or frames dir, then gate.")
             video_or_frames = gr.Textbox(
                 label="Output mp4 or frames directory",
-                placeholder="/path/to/outputs/xxx.mp4 or .../frames",
+                placeholder="/path/to/out.mp4 or .../frames",
             )
             btn_gate = gr.Button("4 · pose_gate open_end (Lab)", variant="primary")
             log = gr.Textbox(label="Log", lines=16, max_lines=30)
             gate_json_out = gr.Textbox(label="Last gate JSON (summary)", lines=8)
+            status = gr.Markdown(
+                value=self._status_md(DEFAULT_LAB_ROOT, DEFAULT_WGP_ROOT)
+            )
 
-            status = gr.Markdown(value=self._status_md(DEFAULT_LAB_ROOT, DEFAULT_WGP_ROOT))
-
-        def check_paths(lab_s, wgp_s):
+        def check_paths(suite_s, lab_s, wgp_s):
+            suite = Path(suite_s)
             lab = Path(lab_s)
             wgp = Path(wgp_s)
-            lines = []
-            lines.append(f"Lab root exists: {lab.is_dir()} — {lab}")
-            lines.append(f"Lab python: {_lab_py(lab).is_file()} — {_lab_py(lab)}")
-            lines.append(f"WanGP root: {wgp.is_dir()} — {wgp}")
+            lines = [
+                f"Suite root: {suite.is_dir()} — {suite}",
+                f"Lab root: {lab.is_dir()} — {lab}",
+                f"Lab python: {_lab_py(lab).is_file()} — {_lab_py(lab)}",
+                f"WanGP root: {wgp.is_dir()} — {wgp}",
+                f"WanGP python: {(wgp / '.venv/bin/python').is_file()}",
+            ]
+            ts = _tracks_script(suite, lab)
+            lines.append(f"tracks script: {ts.is_file()} — {ts}")
             lines.append(
-                f"WanGP python: {(wgp / '.venv/bin/python').is_file()} — {wgp / '.venv/bin/python'}"
+                f"pose_gate: {(lab / 'pipeline/pose_gate.py').is_file()}"
             )
-            for name in (
-                "lab/tools/mhr70_to_wanmove_tracks.py",
-                "pipeline/pose_gate.py",
-                "lab/wangp/finetunes/lab_wanmove_e01.json",
-            ):
-                p = lab / name
-                lines.append(f"  {name}: {p.is_file()}")
-            ft = wgp / "finetunes" / "lab_wanmove_e01.json"
-            lines.append(f"Installed finetune lab_wanmove_e01: {ft.is_file()}")
-            pl = wgp / "plugins" / "wan2gp-lab-bridge"
-            lines.append(f"Installed plugin dir: {pl.is_dir()}")
+            lines.append(
+                f"finetune lab_wanmove_e01: {(wgp / 'finetunes/lab_wanmove_e01.json').is_file()}"
+            )
+            lines.append(
+                f"plugin dir: {(wgp / 'plugins/wan2gp-lab-bridge').is_dir()}"
+            )
+            lines.append(f"suite cache: {DEFAULT_SUITE_CACHE.is_dir()} — {DEFAULT_SUITE_CACHE}")
             return "\n".join(lines), self._status_md(lab, wgp)
 
-        def build_tracks(lab_s, analysis_s, src_s, out_still_s, out_tracks_s, nframes):
+        def build_tracks(
+            suite_s, lab_s, analysis_s, src_s, out_still_s, out_tracks_s, nframes
+        ):
+            suite = Path(suite_s)
             lab = Path(lab_s)
             nframes = int(nframes)
-            # ensure still 832x480 exists
             still_p = Path(out_still_s)
             src_p = Path(src_s)
             if not still_p.is_file() and src_p.is_file():
@@ -233,44 +244,50 @@ print('wrote', dst)
                 )
                 if code != 0:
                     return f"still resize failed:\n{out}", gr.update()
-            tracks_script = lab / "lab/tools/mhr70_to_wanmove_tracks.py"
-            # prefer hands tracks path
+
+            tracks_script = _tracks_script(suite, lab)
+            if not tracks_script.is_file():
+                return f"tracks script missing: {tracks_script}", gr.update()
+
             out_t = Path(out_tracks_s)
             if f"t{nframes}" not in out_t.name:
                 out_t = out_t.parent / f"tracks_e01_open_hands_t{nframes}.npy"
-            args = [
-                str(tracks_script),
-                "--analysis",
-                analysis_s,
-                "--src-still",
-                src_s,
-                "--still",
-                str(still_p),
-                "--out",
-                str(out_t),
-                "--frames",
-                str(nframes),
-                "--width",
-                "832",
-                "--height",
-                "480",
-                "--apart-dx",
-                "100",
-                "--vis",
-            ]
-            code, out = _run_lab(lab, args, timeout=300)
-            # copy into WanGP mask_outputs for easy pick
+            out_t.parent.mkdir(parents=True, exist_ok=True)
+
+            code, out = _run_lab(
+                lab,
+                [
+                    str(tracks_script),
+                    "--analysis",
+                    analysis_s,
+                    "--src-still",
+                    src_s,
+                    "--still",
+                    str(still_p),
+                    "--out",
+                    str(out_t),
+                    "--frames",
+                    str(nframes),
+                    "--width",
+                    "832",
+                    "--height",
+                    "480",
+                    "--apart-dx",
+                    "100",
+                    "--vis",
+                ],
+                timeout=300,
+            )
             wgp_mask = DEFAULT_WGP_ROOT / "mask_outputs"
             try:
                 wgp_mask.mkdir(parents=True, exist_ok=True)
                 if out_t.is_file():
                     shutil.copy2(out_t, wgp_mask / out_t.name)
                 if still_p.is_file():
-                    shutil.copy2(still_p, wgp_mask / "lab_still_675_832x480.jpg")
+                    shutil.copy2(still_p, wgp_mask / still_p.name)
             except Exception as e:
                 out += f"\ncopy mask_outputs: {e}"
-            msg = f"exit={code}\ntracks={out_t}\n{out}"
-            return msg, str(out_t)
+            return f"exit={code}\ntracks={out_t}\n{out}", str(out_t)
 
         def apply_move_preset(state, nframes, nsteps, seed_v):
             settings = self.get_current_model_settings(state)
@@ -287,11 +304,14 @@ print('wrote', dst)
             settings["image_prompt_type"] = "S"
             settings["prompt_enhancer"] = ""
             settings["output_filename"] = "lab_wanmove_e01"
-            # custom_guide path if exists
-            tpath = (DEFAULT_SUITE_CACHE if DEFAULT_SUITE_CACHE.is_dir() else DEFAULT_LAB_ROOT / "_data/cache/wanmove") / f"tracks_e01_open_hands_t{int(nframes)}.npy"
+            tpath = DEFAULT_SUITE_CACHE / f"tracks_e01_open_hands_t{int(nframes)}.npy"
             if tpath.is_file():
                 settings["custom_guide"] = str(tpath)
-            return time.time(), f"Applied Move preset to main form.\ncustom_guide={settings.get('custom_guide')}\n→ set Start image + Generate."
+            return (
+                time.time(),
+                f"Move preset applied.\ncustom_guide={settings.get('custom_guide')}\n"
+                "→ set Start image + Generate on Media tab.",
+            )
 
         def apply_fast_preset(state, seed_v):
             settings = self.get_current_model_settings(state)
@@ -310,19 +330,22 @@ print('wrote', dst)
             settings["repeat_generation"] = 3
             settings["custom_guide"] = None
             settings["output_filename"] = "lab_ti2v5b_fast_e01"
-            return time.time(), "Applied FastWan smoke preset (no tracks). Smoke only — not pose pass."
+            return (
+                time.time(),
+                "FastWan smoke preset (no tracks). Smoke only — not pose pass.",
+            )
 
         def run_gate(lab_s, path_s):
             lab = Path(lab_s)
             path = Path(path_s.strip()) if path_s else None
-            if not path or not (path.exists()):
+            if not path or not path.exists():
                 return "Need existing mp4 or frames dir", ""
             frames_dir = path
-            tmp = None
+            gate_cache = DEFAULT_SUITE_CACHE
+            gate_cache.mkdir(parents=True, exist_ok=True)
             if path.is_file() and path.suffix.lower() in (".mp4", ".webm", ".mov"):
-                tmp = lab / "_data" / "cache" / "wanmove" / f"gate_frames_{datetime.now().strftime('%H%M%S')}"
+                tmp = gate_cache / f"_gate_frames_{datetime.now().strftime('%H%M%S')}"
                 tmp.mkdir(parents=True, exist_ok=True)
-                # extract via lab python imageio
                 code, out = _run_lab(
                     lab,
                     [
@@ -343,12 +366,10 @@ print('frames', len(list(out.glob('*.jpg'))))
                 if code != 0:
                     return f"frame extract failed:\n{out}", ""
                 frames_dir = tmp
-            elif path.is_dir():
-                frames_dir = path
-            else:
+            elif not path.is_dir():
                 return "path must be mp4 or directory", ""
 
-            gate_out = lab / "_data" / "cache" / "wanmove" / "last_pose_gate_open_end.json"
+            gate_out = gate_cache / "last_pose_gate_open_end.json"
             code, out = _run_lab(
                 lab,
                 [
@@ -385,12 +406,20 @@ print('frames', len(list(out.glob('*.jpg'))))
 
         btn_paths.click(
             fn=check_paths,
-            inputs=[lab_root, wgp_root],
+            inputs=[suite_root, lab_root, wgp_root],
             outputs=[log, status],
         )
         btn_tracks.click(
             fn=build_tracks,
-            inputs=[lab_root, analysis_dir, src_still, out_still, out_tracks, frames],
+            inputs=[
+                suite_root,
+                lab_root,
+                analysis_dir,
+                src_still,
+                out_still,
+                out_tracks,
+                frames,
+            ],
             outputs=[log, out_tracks],
         )
         btn_preset_move.click(
@@ -423,7 +452,6 @@ print('frames', len(list(out.glob('*.jpg'))))
             inputs=[lab_root, video_or_frames],
             outputs=[log, gate_json_out],
         )
-
         return root
 
     @staticmethod
@@ -432,6 +460,6 @@ print('frames', len(list(out.glob('*.jpg'))))
         ok_ft = (wgp / "finetunes" / "lab_wanmove_e01.json").is_file()
         return (
             f"**Status:** Lab venv `{'OK' if ok_lab else 'MISSING'}` · "
-            f"finetune installed `{'OK' if ok_ft else 'run install_to_wangp.sh'}` · "
-            f"profile tip: **4** on 24GB RAM, sage attention"
+            f"finetune `{'OK' if ok_ft else 'run install_bridge.sh'}` · "
+            f"profile **4** · sage · int8"
         )

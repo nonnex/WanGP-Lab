@@ -85,4 +85,4 @@ else
   echo "WARN: no wgp_config.json"
 fi
 
-echo "OK → bash $ROOT/suite/scripts/start_wangp.sh"
+echo "OK → bash $ROOT/suite/scripts/start_wangp_ui.sh"

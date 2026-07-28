@@ -2,7 +2,7 @@
 
 ## Mission
 
-**Operator suite** for still→motion hard-cases: WanGP as **cockpit**, ai-img-seq-kimi as **motor**, thin **bridge** (finetunes + Lab Bridge plugin).
+**Operator suite** for still→motion hard-cases: WanGP **cockpit**, ai-img-seq-kimi **motor**, thin **bridge**.
 
 Primary hard-case: day21_10 leg uncross→open (675→open), then side-switch toward 677.
 
@@ -10,13 +10,13 @@ Primary hard-case: day21_10 leg uncross→open (675→open), then side-switch to
 
 | Path | Role |
 |------|------|
-| `suite/finetunes/` | Mission models (`lab_wanmove_*`, `lab_ti2v5b_fast_*`) |
-| `suite/plugins/wan2gp-lab-bridge/` | UI tab: tracks → preset → gate |
-| `suite/scripts/` | install, start, status, gate, tracks |
-| `suite/tools/` | headless Move, track builder |
+| `suite/finetunes/` | `lab_wanmove_*`, `lab_ti2v5b_fast_*` |
+| `suite/plugins/wan2gp-lab-bridge/` | UI: tracks → preset → gate |
+| `suite/scripts/` | install, start UI, status, gate, tracks, Windows shortcut |
+| `suite/tools/` | headless Move, track builder `.py` |
 | `suite/settings/` | WanGP UI defaults SoT |
-| `suite/docs/` | architecture + research |
-| `wangp/` | local Wan2GP clone + `.venv` + `ckpts` (gitignored heavy) |
+| `suite/docs/` | architecture (start at `SUITE_CRITICAL.md`) |
+| `wangp/` | Wan2GP clone + `.venv` + `ckpts` (local) |
 | `data/cache/wanmove/` | stills + trajectory npy |
 | `config/suite.env` | single path config |
 
@@ -25,14 +25,15 @@ Primary hard-case: day21_10 leg uncross→open (675→open), then side-switch to
 | | Python |
 |--|--------|
 | WanGP | `wangp/.venv/bin/python` |
-| Lab motor | `/home/nick/AI/Projects/ai-img-seq-kimi/pipeline/.venv/bin/python` |
+| Lab motor | `$LAB_MOTOR_ROOT/pipeline/.venv/bin/python` |
 
 ## Commands
 
 ```bash
 bash suite/scripts/status.sh
 bash suite/scripts/install_bridge.sh
-bash suite/scripts/start_wangp.sh          # profile 4 + sage → :7860
+bash suite/scripts/start_wangp_ui.sh       # profile 4 + sage → :7860
+bash suite/scripts/install_windows_shortcut.sh
 bash suite/scripts/build_tracks.sh 49
 bash suite/scripts/gate_output.sh <mp4>
 bash suite/tools/run_move_e01.sh --frames 49 --steps 16 --profile 4
@@ -41,8 +42,7 @@ bash suite/tools/run_move_e01.sh --frames 49 --steps 16 --profile 4
 ## Host
 
 - CPU: i7-12700F · RAM ~24 GB · GPU RTX 5060 Ti 16 GB
-- Default Memory Profile **4** (Profile 2 only if much RAM free)
-- Attention **sage** (1.0.6 in wangp venv) · Quant **int8**
+- Memory Profile **4** · Attention **sage** · Quant **int8**
 
 ## Rules
 
@@ -57,10 +57,9 @@ bash suite/tools/run_move_e01.sh --frames 49 --steps 16 --profile 4
 - Config: `.kilo/kilo.jsonc`
 - Commands: `.kilo/command/{status,start,install,gate,tracks,handoff}.md`
 - Agent: `.kilo/agents/suite.md`
-- Indexing **off** (no embedding of ckpts/venv)
-- Slash examples: `/status`, `/start`, `/gate`
+- Indexing **off**
 
 ## Related
 
-- Motor lab: `/home/nick/AI/Projects/ai-img-seq-kimi`
+- Motor: `/home/nick/AI/Projects/ai-img-seq-kimi`
 - GitHub: https://github.com/nonnex/WanGP-Lab

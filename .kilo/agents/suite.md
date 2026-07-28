@@ -27,7 +27,7 @@ lab-motor = ai-img-seq-kimi (SAM3D, pose_gate, fixtures)
 ```bash
 bash suite/scripts/status.sh
 bash suite/scripts/install_bridge.sh
-bash suite/scripts/start_wangp.sh
+bash suite/scripts/start_wangp_ui.sh
 bash suite/scripts/build_tracks.sh 49
 bash suite/scripts/gate_output.sh <mp4|frames>
 bash suite/tools/run_move_e01.sh --profile 4 --frames 49 --steps 16

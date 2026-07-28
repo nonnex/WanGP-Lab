@@ -1,15 +1,13 @@
 {
   "$schema": "https://app.kilo.ai/config.json",
-  // WanGP-Lab — cockpit suite; long GPU jobs in wangp/, motor in lab-motor
+  // WanGP-Lab — writes auto; destructive bash asks; never touch weights/core
   "indexing": {
     "enabled": false
   },
   "permission": {
-    "bash": "allow",
     "read": "allow",
     "edit": {
-      "*": "allow",
-      // never touch heavy / generated trees
+      // deny heavy / upstream core first (first match wins)
       "wangp/.venv/**": "deny",
       "wangp/ckpts/**": "deny",
       "wangp/outputs/**": "deny",
@@ -24,14 +22,42 @@
       "*.gguf": "deny",
       "*.rpa": "deny",
       "*.npz": "deny",
-      "*.pkl": "deny"
+      "*.pkl": "deny",
+      "*": "allow"
     },
     "glob": "allow",
     "grep": "allow",
+    "list": "allow",
     "webfetch": "allow",
     "websearch": "allow",
     "todowrite": "allow",
     "todoread": "allow",
+    "skill": "allow",
+    "task": "allow",
+    "lsp": "allow",
+    "question": "allow",
+
+    "bash": {
+      "rm -rf *": "ask",
+      "rm -r *": "ask",
+      "rm *": "ask",
+      "sudo *": "ask",
+      "mkfs*": "ask",
+      "dd *": "ask",
+      "kill -9 *": "ask",
+      "pkill *": "ask",
+      "killall *": "ask",
+      "git push --force*": "ask",
+      "git push -f *": "ask",
+      "git reset --hard *": "ask",
+      "git clean -fd*": "ask",
+      "git clean -f *": "ask",
+      "git branch -D *": "ask",
+      "chmod -R *": "ask",
+      "chown -R *": "ask",
+      "*": "allow"
+    },
+
     "external_directory": {
       "/home/nick/AI/Projects/WanGP-Lab/**": "allow",
       "/home/nick/AI/Projects/ai-img-seq-kimi/**": "allow",
@@ -44,6 +70,7 @@
       "/home/nick/.cache/**": "allow",
       "*": "ask"
     },
+
     "doom_loop": "ask"
   }
 }
