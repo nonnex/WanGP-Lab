@@ -17,3 +17,17 @@ if [[ -f "$WANGP_ROOT/wgp_config.json" ]]; then
   python3 -c "import json;d=json.load(open('$WANGP_ROOT/wgp_config.json'));print('plugins',d.get('enabled_plugins'));print('profile',d.get('profile'),d.get('attention_mode'))"
 fi
 echo "suite cache:"; ls "$WANGP_LAB_CACHE" 2>/dev/null | head -15
+
+echo "hygiene:"
+if bash "$ROOT/suite/scripts/lab_hygiene.sh" --check --quiet 2>/dev/null; then
+  echo "  CLEAN (keep=$WANGP_LAB_KEEP_RUNS)"
+else
+  echo "  DIRTY — bash suite/scripts/lab_hygiene.sh"
+  bash "$ROOT/suite/scripts/lab_hygiene.sh" --check 2>&1 | sed 's/^/  /' | tail -20 || true
+fi
+echo "outputs: $WANGP_LAB_OUTPUTS  link=$(readlink "$WANGP_ROOT/outputs" 2>/dev/null || echo none)"
+if [[ -f "$WANGP_LAB_EXPERIMENTS/LEADERBOARD.tsv" ]]; then
+  echo "leaderboard (last 5):"
+  tail -5 "$WANGP_LAB_EXPERIMENTS/LEADERBOARD.tsv" | sed 's/^/  /'
+fi
+

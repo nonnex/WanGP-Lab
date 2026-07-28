@@ -35,6 +35,11 @@ EOF
   esac
 done
 
+# lab hygiene (quiet) before UI
+if [[ -f "$ROOT/suite/scripts/lab_hygiene.sh" ]]; then
+  bash "$ROOT/suite/scripts/lab_hygiene.sh" --quiet || true
+fi
+
 cd "$WANGP_ROOT"
 if [[ ! -x .venv/bin/python ]]; then
   echo "missing wangp venv: $WANGP_ROOT/.venv" >&2

@@ -359,11 +359,15 @@ def _append_leaderboard(
 
 
 def _prune_old_runs(exp_root: Path) -> None:
-    script = SUITE / "suite" / "scripts" / "prune_experiments.sh"
-    if not script.is_file():
+    """Full lab hygiene (prune + symlink + spam)."""
+    script = SUITE / "suite" / "scripts" / "lab_hygiene.sh"
+    if script.is_file():
+        subprocess.run(["bash", str(script), "--quiet"], check=False)
         return
-    keep = os.environ.get("WANGP_LAB_KEEP_RUNS", "2")
-    subprocess.run(["bash", str(script), str(keep)], check=False)
+    legacy = SUITE / "suite" / "scripts" / "prune_experiments.sh"
+    if legacy.is_file():
+        keep = os.environ.get("WANGP_LAB_KEEP_RUNS", "2")
+        subprocess.run(["bash", str(legacy), str(keep)], check=False)
 
 
 if __name__ == "__main__":

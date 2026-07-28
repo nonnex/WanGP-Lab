@@ -106,3 +106,9 @@ else
 fi
 
 echo "OK → bash $ROOT/suite/scripts/start_wangp_ui.sh"
+
+# keep lab clean
+if [[ -f "$ROOT/suite/scripts/lab_hygiene.sh" ]]; then
+  bash "$ROOT/suite/scripts/lab_hygiene.sh" --quiet || true
+fi
+
