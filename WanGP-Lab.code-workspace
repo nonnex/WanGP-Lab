@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"kilo-code.new.autocomplete.enableAutoTrigger": false,
+		"kilo-code.new.maxCost": 2,
+		"kilo-code.new.browserAutomation.enabled": false,
+		"kilo-code.new.showTokenThroughput": true,
+		"kilo-code.new.autoApprove.enabled": true,
+		"terminal.integrated.defaultProfile.linux": "bash",
+		"terminal.integrated.profiles.linux": {
+			"bash": {
+				"path": "/bin/bash",
+				"args": [
+					"-l"
+				],
+				"icon": "terminal-bash"
+			}
+		},
+		"terminal.integrated.scrollback": 50000,
+		"terminal.integrated.enablePersistentSessions": true,
+		"terminal.integrated.shellIntegration.enabled": true,
+		"task.quickOpen.detail": true
+	}
+}

@@ -3,8 +3,8 @@
   "kilo-code.new.maxCost": 2,
   "kilo-code.new.browserAutomation.enabled": false,
   "kilo-code.new.showTokenThroughput": true,
-  "kilo-code.new.agentWorkStyle": "human-in-the-loop",
-  "kilo-code.new.autoApprove.enabled": false,
+  "kilo-code.new.agentWorkStyle": "autonomous",
+  "kilo-code.new.autoApprove.enabled": true,
 
   "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.profiles.linux": {

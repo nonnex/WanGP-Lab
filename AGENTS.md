@@ -54,10 +54,11 @@ bash suite/tools/run_move_e01.sh --frames 49 --steps 16 --profile 4
 
 ## Kilo
 
-- Config: `.kilo/kilo.jsonc`
+- Config: `.kilo/kilo.jsonc` only (no root `kilo.json`, no `extends`)
 - Commands: `.kilo/command/{status,start,install,gate,tracks,handoff}.md`
 - Agent: `.kilo/agents/suite.md`
 - Indexing **off**
+- New projects: `bash ~/AI/Projects/_kilo_template/scripts/apply.sh <dir>`
 
 ## Related
 
