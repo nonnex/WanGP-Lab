@@ -3,11 +3,10 @@
 
 Uses Wan2GP Python API with sparse logging (no tqdm/[stdout] spam).
 
-  bash lab/tools/wan2gp_move_e01.sh
-  # or:
-  /home/nick/AI/_COMMON/VENDORS/Wan2GP/.venv/bin/python lab/tools/wan2gp_move_e01.py
+  bash suite/scripts/start_wangp.sh   # UI
+  bash suite/tools/run_move_e01.sh    # headless
 
-Requires ckpts:
+Requires ckpts under wangp/ckpts/:
   - wan2.1_wanmove_14B_quanto_mbf16_int8.safetensors
   - umt5-xxl/models_t5_umt5-xxl-enc-quanto_int8.safetensors
   - Wan2.1_VAE.safetensors
@@ -16,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -23,23 +23,31 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-LAB = Path(__file__).resolve().parents[2]
-WGP = Path("/home/nick/AI/_COMMON/VENDORS/Wan2GP")
+# suite/tools/this.py → parents[2] = WanGP-Lab root
+SUITE = Path(os.environ.get("WANGP_LAB_ROOT", Path(__file__).resolve().parents[2]))
+WGP = Path(os.environ.get("WANGP_ROOT", os.environ.get("AIIMGSEQ_WANGP_ROOT", SUITE / "wangp")))
+MOTOR = Path(
+    os.environ.get(
+        "LAB_MOTOR_ROOT",
+        os.environ.get("AIIMGSEQ_LAB_ROOT", "/home/nick/AI/Projects/ai-img-seq-kimi"),
+    )
+)
 WGP_PY = WGP / ".venv" / "bin" / "python"
-LAB_PY = LAB / "pipeline" / ".venv" / "bin" / "python"
+LAB_PY = MOTOR / "pipeline" / ".venv" / "bin" / "python"
+CACHE = Path(os.environ.get("WANGP_LAB_CACHE", SUITE / "data" / "cache" / "wanmove"))
 
-DEFAULT_STILL = LAB / "_data/cache/wanmove/still_675_832x480.jpg"
-DEFAULT_TRACKS = LAB / "_data/cache/wanmove/tracks_e01_open_t81.npy"
+DEFAULT_STILL = CACHE / "still_675_832x480.jpg"
+DEFAULT_TRACKS = CACHE / "tracks_e01_open_hands_t49.npy"
 DEFAULT_PROMPT = (
-    "Same woman as the start image, seated, locked face. "
-    "Slowly uncross legs: lower the top knee, then move knees apart left-right "
-    "until thighs sit side by side with a clear gap. Feet stay down. No kick. "
-    "Hands may leave the knee and rest naturally on the thigh or seat — "
-    "do not keep a hand glued on the knee. Do not recross. Static camera."
+    "Same woman as the start image, seated upright, locked face. "
+    "Slowly uncross legs: lower the top knee until both knees are level, "
+    "then slide knees apart left-right until thighs sit side by side with a clear gap. "
+    "Hands leave the knee and rest on the thigh or mattress beside the hip. "
+    "Feet stay down. No kick, no lying flat. Static camera."
 )
 DEFAULT_NEG = (
-    "kick, raised leg, frozen cross, legs stay stacked, thighs stacked, "
-    "hand stuck on knee, hand glued to knee, frozen hand on leg, "
+    "hand stuck on knee, hand glued to knee, frozen hand on leg, kick, raised leg, "
+    "lying down, reclining flat, frozen cross, thighs stacked, legs stay crossed, "
     "morphing face, identity drift, camera move, zoom, pan"
 )
 
@@ -80,14 +88,16 @@ def main() -> int:
     ap.add_argument("--skip-gate", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
-    # auto-pick tracks matching frame count if default 81 path and frames!=81
-    if args.tracks == DEFAULT_TRACKS and args.frames != 81:
-        alt = LAB / f"_data/cache/wanmove/tracks_e01_open_t{args.frames}.npy"
-        if alt.is_file():
+    # auto-pick hands tracks matching frame count
+    if args.frames != 49:
+        alt = CACHE / f"tracks_e01_open_hands_t{args.frames}.npy"
+        if alt.is_file() and (
+            args.tracks == DEFAULT_TRACKS or not Path(args.tracks).is_file()
+        ):
             args.tracks = alt
 
     if not WGP.is_dir() or not WGP_PY.is_file():
-        print("Wan2GP or venv missing", file=sys.stderr)
+        print(f"Wan2GP or venv missing: {WGP}", file=sys.stderr)
         return 2
 
     missing = _check_ckpts()
@@ -97,15 +107,20 @@ def main() -> int:
             print(" ", m, file=sys.stderr)
         return 2
 
-    still = args.still if args.still.is_absolute() else LAB / args.still
-    tracks = args.tracks if args.tracks.is_absolute() else LAB / args.tracks
+    still = args.still if Path(args.still).is_absolute() else SUITE / args.still
+    tracks = args.tracks if Path(args.tracks).is_absolute() else SUITE / args.tracks
+    still, tracks = Path(still), Path(tracks)
     if not still.is_file() or not tracks.is_file():
-        print("missing still or tracks", file=sys.stderr)
+        print(f"missing still or tracks:\n  {still}\n  {tracks}", file=sys.stderr)
         return 2
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out = args.out_dir or (LAB / "_data" / "experiments" / f"{ts}_wan2gp_move_e01")
-    out = out if out.is_absolute() else LAB / out
+    exp_root = Path(
+        os.environ.get("WANGP_LAB_EXPERIMENTS", SUITE / "data" / "experiments")
+    )
+    out = args.out_dir or (exp_root / f"{ts}_wan2gp_move_e01")
+    out = out if Path(out).is_absolute() else SUITE / out
+    out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "inputs").mkdir(exist_ok=True)
     (out / "outputs").mkdir(exist_ok=True)
@@ -373,7 +388,7 @@ except Exception:
     g = subprocess.run(
         [
             str(LAB_PY),
-            str(LAB / "pipeline" / "pose_gate.py"),
+            str(MOTOR / "pipeline" / "pose_gate.py"),
             "hop",
             "--frames",
             str(frames_dir),
@@ -382,7 +397,7 @@ except Exception:
             "--json-out",
             str(gate_json),
         ],
-        cwd=str(LAB),
+        cwd=str(MOTOR),
     )
     if gate_json.is_file():
         print(gate_json.read_text()[:1000])

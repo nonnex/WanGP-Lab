@@ -138,13 +138,12 @@ Turbo/FastWan never replaces L2.
 
 ```bash
 # install / refresh bridge
-bash lab/wangp/install_to_wangp.sh
+cd ~/AI/Projects/WanGP-Lab
+bash suite/scripts/install_bridge.sh
 
 # cockpit
-cd ~/AI/_COMMON/VENDORS/Wan2GP && source .venv/bin/activate
-python wgp.py --profile 4 --attention sage
+bash suite/scripts/start_wangp.sh   # profile 4 + sage
 
-# motor headless (optional)
-cd ~/AI/Projects/ai-img-seq-kimi
-bash lab/tools/wan2gp_move_e01.sh --profile 4 --frames 49 --steps 16
+# headless Move (optional)
+bash suite/tools/run_move_e01.sh --profile 4 --frames 49 --steps 16
 ```

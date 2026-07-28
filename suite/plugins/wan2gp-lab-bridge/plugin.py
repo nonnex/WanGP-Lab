@@ -21,6 +21,9 @@ PLUGIN_ID = "wan2gp-lab-bridge"
 PLUGIN_NAME = "Lab Bridge"
 
 # Defaults (overridable via env)
+DEFAULT_SUITE_ROOT = Path(
+    os.environ.get("WANGP_LAB_ROOT", "/home/nick/AI/Projects/WanGP-Lab")
+)
 DEFAULT_LAB_ROOT = Path(
     os.environ.get(
         "AIIMGSEQ_LAB_ROOT",
@@ -30,13 +33,13 @@ DEFAULT_LAB_ROOT = Path(
 DEFAULT_WGP_ROOT = Path(
     os.environ.get(
         "AIIMGSEQ_WANGP_ROOT",
-        os.environ.get("WANGP_ROOT", "/home/nick/AI/_COMMON/VENDORS/Wan2GP"),
+        os.environ.get("WANGP_ROOT", str(DEFAULT_SUITE_ROOT / "wangp")),
     )
 )
 DEFAULT_SUITE_CACHE = Path(
     os.environ.get(
         "WANGP_LAB_CACHE",
-        "/home/nick/AI/Projects/WanGP-Lab/data/cache/wanmove",
+        str(DEFAULT_SUITE_ROOT / "data" / "cache" / "wanmove"),
     )
 )
 
