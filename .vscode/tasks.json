@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "suite: status",
+      "type": "shell",
+      "command": "bash suite/scripts/status.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "suite: install bridge",
+      "type": "shell",
+      "command": "bash suite/scripts/install_bridge.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "suite: start WanGP",
+      "type": "shell",
+      "command": "bash suite/scripts/start_wangp.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "suite: build tracks 49",
+      "type": "shell",
+      "command": "bash suite/scripts/build_tracks.sh 49",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "suite: Move e01 headless (49f×16)",
+      "type": "shell",
+      "command": "bash suite/tools/run_move_e01.sh --profile 4 --frames 49 --steps 16 --seed 33",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "suite: Move smoke (33f×8)",
+      "type": "shell",
+      "command": "bash suite/tools/run_move_e01.sh --profile 4 --frames 33 --steps 8 --seed 33",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}

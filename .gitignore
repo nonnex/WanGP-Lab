@@ -13,8 +13,14 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/settings.json
+!.vscode/tasks.json
 !.vscode/extensions.json
 *.code-workspace
+
+# ----- Kilo local -----
+.kilo/node_modules/
+.kilo/package-lock.json
+.kilo/memory/local/
 
 # ----- Python -----
 __pycache__/

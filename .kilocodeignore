@@ -1,0 +1,16 @@
+wangp/.venv/**
+wangp/ckpts/**
+wangp/outputs/**
+wangp/loras/**
+wangp/models/**
+wangp/**/__pycache__/**
+data/experiments/**
+_logs/**
+**/*.safetensors
+**/*.pt
+**/*.pth
+**/*.ckpt
+**/*.gguf
+**/*.mp4
+node_modules/**
+.git/**

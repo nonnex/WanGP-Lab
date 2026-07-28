@@ -1,0 +1,12 @@
+wangp/.venv/
+wangp/ckpts/
+wangp/outputs/
+wangp/loras/
+wangp/models/
+data/experiments/
+_logs/
+*.safetensors
+*.pt
+*.mp4
+node_modules/
+.git/

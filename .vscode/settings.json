@@ -1,12 +1,51 @@
 {
-  "search.exclude": {
-    "wangp/**": true,
-    "data/experiments/**": true,
-    "_logs/**": true
+  "kilo-code.new.autocomplete.enableAutoTrigger": false,
+  "kilo-code.new.maxCost": 2,
+  "kilo-code.new.browserAutomation.enabled": false,
+  "kilo-code.new.showTokenThroughput": true,
+  "kilo-code.new.agentWorkStyle": "human-in-the-loop",
+  "kilo-code.new.autoApprove.enabled": false,
+
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.profiles.linux": {
+    "bash": {
+      "path": "/bin/bash",
+      "args": ["-l"],
+      "icon": "terminal-bash"
+    }
   },
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "terminal.integrated.scrollback": 50000,
+  "terminal.integrated.enablePersistentSessions": true,
+  "terminal.integrated.shellIntegration.enabled": true,
+
+  "python.defaultInterpreterPath": "/home/nick/AI/Projects/ai-img-seq-kimi/pipeline/.venv/bin/python",
+
   "files.watcherExclude": {
-    "wangp/ckpts/**": true,
-    "wangp/.venv/**": true,
-    "wangp/outputs/**": true
-  }
+    "**/wangp/.venv/**": true,
+    "**/wangp/ckpts/**": true,
+    "**/wangp/outputs/**": true,
+    "**/wangp/loras/**": true,
+    "**/wangp/models/**": true,
+    "**/wangp/**/__pycache__/**": true,
+    "**/data/experiments/**": true,
+    "**/_logs/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/wangp/.venv/**": true,
+    "**/wangp/ckpts/**": true,
+    "**/wangp/outputs/**": true,
+    "**/wangp/loras/**": true,
+    "**/data/experiments/**": true,
+    "**/_logs/**": true,
+    "**/.git/**": true
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  },
+
+  "task.allowAutomaticTasks": "on",
+  "task.quickOpen.detail": true
 }

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  // WanGP-Lab — cockpit suite; long GPU jobs in wangp/, motor in lab-motor
+  "indexing": {
+    "enabled": false
+  },
+  "permission": {
+    "bash": "allow",
+    "read": "allow",
+    "edit": {
+      "*": "allow",
+      // never touch heavy / generated trees
+      "wangp/.venv/**": "deny",
+      "wangp/ckpts/**": "deny",
+      "wangp/outputs/**": "deny",
+      "wangp/loras/**": "deny",
+      "wangp/defaults/**": "deny",
+      "wangp/wgp.py": "deny",
+      "wangp/models/**": "deny",
+      "*.safetensors": "deny",
+      "*.pt": "deny",
+      "*.pth": "deny",
+      "*.ckpt": "deny",
+      "*.gguf": "deny",
+      "*.rpa": "deny",
+      "*.npz": "deny",
+      "*.pkl": "deny"
+    },
+    "glob": "allow",
+    "grep": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "todowrite": "allow",
+    "todoread": "allow",
+    "external_directory": {
+      "/home/nick/AI/Projects/WanGP-Lab/**": "allow",
+      "/home/nick/AI/Projects/ai-img-seq-kimi/**": "allow",
+      "/home/nick/AI/_COMMON/**": "allow",
+      "/mnt/c/Users/domen/**": "allow",
+      "/tmp/**": "allow",
+      "/tmp/kilo/**": "allow",
+      "/home/nick/.local/**": "allow",
+      "/home/nick/.config/kilo/**": "allow",
+      "/home/nick/.cache/**": "allow",
+      "*": "ask"
+    },
+    "doom_loop": "ask"
+  }
+}
