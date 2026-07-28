@@ -37,6 +37,7 @@ bash suite/scripts/install_windows_shortcut.sh
 bash suite/scripts/build_tracks.sh 49
 bash suite/scripts/gate_output.sh <mp4>
 bash suite/tools/run_move_e01.sh --frames 49 --steps 16 --profile 4
+bash suite/scripts/prune_experiments.sh   # keep last 2 runs (auto after Move)
 ```
 
 ## Host

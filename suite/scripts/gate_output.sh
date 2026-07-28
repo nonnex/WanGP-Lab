@@ -26,5 +26,9 @@ fi
 
 "$PY" "$LAB_MOTOR_ROOT/pipeline/pose_gate.py" hop \
   --frames "$FRAMES" --mode open_end --json-out "$OUT"
+# drop transient extract dir (keep only rolling JSON)
+if [[ "${FRAMES}" == *"/data/cache/_gate_frames_"* ]]; then
+  rm -rf "$FRAMES"
+fi
 echo "→ $OUT"
 "$PY" -c "import json;d=json.load(open(r'$OUT'));print('ok',d.get('ok'),'progress',d.get('progress'),'phase',d.get('phase'));print(d.get('late_open'))"

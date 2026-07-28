@@ -296,26 +296,74 @@ def main() -> int:
         print("frame extract failed", file=sys.stderr)
         return 5
 
-    if args.skip_gate or not LAB_PY.is_file():
-        return 0
-    gate_json = out / "pose_gate_open_end.json"
-    g = subprocess.run(
+    gate_rc = 0
+    if not args.skip_gate and LAB_PY.is_file():
+        gate_json = out / "pose_gate_open_end.json"
+        g = subprocess.run(
+            [
+                str(LAB_PY),
+                str(MOTOR / "pipeline" / "pose_gate.py"),
+                "hop",
+                "--frames",
+                str(frames_dir),
+                "--mode",
+                "open_end",
+                "--json-out",
+                str(gate_json),
+            ],
+            cwd=str(MOTOR),
+        )
+        gate_rc = 0 if g.returncode in (0, 3) else g.returncode
+        if gate_json.is_file():
+            print(gate_json.read_text()[:1200])
+            _append_leaderboard(out, gate_json, args.seed, args.frames, args.steps)
+        rolling = exp_root / "last_pose_gate_open_end.json"
+        if gate_json.is_file():
+            shutil.copy2(gate_json, rolling)
+
+    if os.environ.get("WANGP_LAB_NO_PRUNE", "") not in ("1", "true", "yes"):
+        _prune_old_runs(exp_root)
+
+    return gate_rc
+
+
+def _append_leaderboard(
+    run_dir: Path, gate_json: Path, seed: int, frames: int, steps: int
+) -> None:
+    try:
+        d = json.loads(gate_json.read_text())
+    except Exception:
+        return
+    board = run_dir.parent / "LEADERBOARD.tsv"
+    if not board.is_file():
+        board.write_text(
+            "ts\tseed\tframes\tsteps\tok\tprogress\tphase\tnote\tpath\n",
+            encoding="utf-8",
+        )
+    line = "\t".join(
         [
-            str(LAB_PY),
-            str(MOTOR / "pipeline" / "pose_gate.py"),
-            "hop",
-            "--frames",
-            str(frames_dir),
-            "--mode",
-            "open_end",
-            "--json-out",
-            str(gate_json),
-        ],
-        cwd=str(MOTOR),
+            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            str(seed),
+            str(frames),
+            str(steps),
+            str(bool(d.get("ok"))),
+            f"{float(d.get('progress') or 0):.4f}",
+            str(d.get("phase") or ""),
+            str(d.get("note") or "").replace("\t", " "),
+            str(run_dir.name),
+        ]
     )
-    if gate_json.is_file():
-        print(gate_json.read_text()[:1200])
-    return 0 if g.returncode in (0, 3) else g.returncode
+    with board.open("a", encoding="utf-8") as f:
+        f.write(line + "\n")
+    print("leaderboard", board)
+
+
+def _prune_old_runs(exp_root: Path) -> None:
+    script = SUITE / "suite" / "scripts" / "prune_experiments.sh"
+    if not script.is_file():
+        return
+    keep = os.environ.get("WANGP_LAB_KEEP_RUNS", "2")
+    subprocess.run(["bash", str(script), str(keep)], check=False)
 
 
 if __name__ == "__main__":
