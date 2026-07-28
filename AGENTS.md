@@ -18,6 +18,7 @@ Primary hard-case: day21_10 leg uncross→open (675→open), then side-switch to
 | `suite/docs/` | architecture (start at `SUITE_CRITICAL.md`) |
 | `wangp/` | Wan2GP clone + `.venv` + `ckpts` (local) |
 | `data/cache/wanmove/` | stills + trajectory npy |
+| `_outputs/` | WanGP UI videos (`wangp/outputs` → symlink) |
 | `config/suite.env` | single path config |
 
 ## Venvs (never mix)

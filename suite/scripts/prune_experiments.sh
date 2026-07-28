@@ -82,15 +82,17 @@ for d in "$ROOT"/data/cache/_gate_frames_*; do
   rm_ "$d" "cache/$(basename "$d")"
 done
 
-# --- wangp UI outputs: keep newest KEEP videos ---
-if [[ -d "$WGP/outputs" ]]; then
+# --- UI outputs (suite _outputs, via wangp/outputs symlink): keep newest KEEP ---
+OUT_DIR="${WANGP_LAB_OUTPUTS:-$ROOT/_outputs}"
+[[ -d "$OUT_DIR" ]] || OUT_DIR="$WGP/outputs"
+if [[ -d "$OUT_DIR" ]]; then
   mapfile -t MP4S < <(
-    find "$WGP/outputs" -type f \( -name '*.mp4' -o -name '*.webm' -o -name '*.mov' \) \
+    find "$OUT_DIR" -maxdepth 1 -type f \( -name '*.mp4' -o -name '*.webm' -o -name '*.mov' \) \
       -printf '%T@\t%p\n' 2>/dev/null | sort -nr | cut -f2-
   )
   if ((${#MP4S[@]} > KEEP)); then
     for ((i = KEEP; i < ${#MP4S[@]}; i++)); do
-      rm_ "${MP4S[$i]}" "wangp/outputs/$(basename "${MP4S[$i]}")"
+      rm_ "${MP4S[$i]}" "_outputs/$(basename "${MP4S[$i]}")"
     done
   fi
 fi
@@ -127,5 +129,5 @@ find "$ROOT/_logs" -type f ! -name '.gitkeep' -delete 2>/dev/null || true
 
 echo "--- remaining ---"
 du -sh "$EXP"/* 2>/dev/null | sort -h || true
-du -sh "$ROOT/.kilo" "$WGP/outputs" "$WGP/mask_outputs" "$ROOT/data" 2>/dev/null || true
+du -sh "$ROOT/.kilo" "$OUT_DIR" "$WGP/mask_outputs" "$ROOT/data" 2>/dev/null || true
 echo "OK keep=$KEEP"

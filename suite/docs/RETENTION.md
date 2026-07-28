@@ -7,7 +7,7 @@
 | Last **2 complete** Move dirs | Older + **all incomplete** runs |
 | Last **2** console logs | Older logs |
 | `LEADERBOARD.tsv`, `HANDOFF*.md`, rolling gate JSON | — |
-| Last **2** `wangp/outputs` videos | Older UI exports |
+| Last **2** `_outputs/` videos (`wangp/outputs` → symlink) | Older UI exports |
 | Mission SoT `data/cache/wanmove/` | `_gate_frames_*`, old `mask_outputs/lab_*` |
 | `.kilo/kilo.jsonc` + agents/commands | `.kilo/node_modules`, package*.json |
 

@@ -11,6 +11,7 @@
       "wangp/.venv/**": "deny",
       "wangp/ckpts/**": "deny",
       "wangp/outputs/**": "deny",
+      "_outputs/**": "deny",
       "wangp/loras/**": "deny",
       "wangp/defaults/**": "deny",
       "wangp/wgp.py": "deny",

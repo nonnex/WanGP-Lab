@@ -15,6 +15,26 @@ SRC_SET="$ROOT/suite/settings"
 
 mkdir -p "$WGP/finetunes" "$WGP/plugins" "$WGP/mask_outputs" "$WGP/settings"
 
+# Suite-root UI outputs (Windows-friendly): wangp/outputs → ../_outputs
+OUT_REAL="${WANGP_LAB_OUTPUTS:-$ROOT/_outputs}"
+mkdir -p "$OUT_REAL"
+if [[ -L "$WGP/outputs" ]]; then
+  :
+elif [[ -d "$WGP/outputs" ]]; then
+  shopt -s nullglob
+  for f in "$WGP/outputs"/*; do
+    bn=$(basename "$f")
+    [[ -e "$OUT_REAL/$bn" ]] || mv -f "$f" "$OUT_REAL/"
+  done
+  shopt -u nullglob
+  rm -rf "$WGP/outputs"
+  ln -sfn ../_outputs "$WGP/outputs"
+  echo "outputs → $OUT_REAL (migrated)"
+else
+  ln -sfn ../_outputs "$WGP/outputs"
+  echo "outputs → $OUT_REAL"
+fi
+
 echo "=== install bridge → $WGP ==="
 
 for f in "$SRC_FT"/*.json; do
