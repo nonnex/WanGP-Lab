@@ -1,0 +1,25 @@
+{
+    "model": {
+        "name": "Lab · Wan-Move e01 (pose hard-case)",
+        "architecture": "wanmove",
+        "description": "Lab preset: 675→open knees trajectory I2V. Use still 832×480 + hands tracks .npy as custom_guide. Profile 4 + int8 on 16GB/24GB RAM. Gate with Lab pose_gate open_end after gen.",
+        "infos": "## Lab Wan-Move e01\n\n- **Still:** `_data/cache/wanmove/still_675_832x480.jpg`\n- **Tracks:** `tracks_e01_open_hands_t49.npy` (knees+ankles+wrists)\n- **Gate:** `pipeline/pose_gate.py hop --mode open_end`\n- **Not ship** until open_end pass.\n- Hands tracks move wrists off knee (first-frame glue fix).",
+        "prompt_infos": "## Prompt\nKeep short. Trajectory carries motion. Mention: hands leave knee, feet down, no kick, static camera.",
+        "URLs": "wanmove",
+        "group": "wan"
+    },
+    "prompt": "Same woman as the start image, seated upright, locked face. Slowly uncross legs: lower the top knee until both knees are level, then slide knees apart left-right until thighs sit side by side with a clear gap. Hands leave the knee and rest on the thigh or mattress beside the hip. Feet stay down. No kick, no lying flat. Static camera.",
+    "negative_prompt": "hand stuck on knee, hand glued to knee, frozen hand on leg, kick, raised leg, lying down, reclining flat, frozen cross, thighs stacked, legs stay crossed, morphing face, camera move, zoom, pan",
+    "resolution": "832x480",
+    "video_length": 49,
+    "num_inference_steps": 16,
+    "guidance_scale": 4.0,
+    "seed": 33,
+    "force_fps": "24",
+    "flow_shift": 7.0,
+    "sample_solver": "unipc",
+    "image_prompt_type": "S",
+    "prompt_enhancer": "",
+    "repeat_generation": 1,
+    "output_filename": "lab_wanmove_e01"
+}

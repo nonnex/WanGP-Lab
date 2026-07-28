@@ -1,0 +1,26 @@
+{
+  "out": "_data/cache/wanmove/tracks_e01_open_hands_t81.npy",
+  "shape": [
+    81,
+    6,
+    2
+  ],
+  "width": 832,
+  "height": 480,
+  "frames": 81,
+  "analysis": "_data/analysis/0009",
+  "src_wh": [
+    1920,
+    1080
+  ],
+  "apart_dx": 100.0,
+  "points": [
+    "L_knee",
+    "R_knee",
+    "L_ankle",
+    "R_ankle",
+    "R_wrist",
+    "L_wrist"
+  ],
+  "wan2gp": "custom_guide npy [T,N,2] pixel coords (hands leave knee)"
+}

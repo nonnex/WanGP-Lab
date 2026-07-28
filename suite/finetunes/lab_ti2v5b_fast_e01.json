@@ -1,0 +1,28 @@
+{
+    "model": {
+        "name": "Lab · TI2V-5B FastWan e01 (smoke only)",
+        "architecture": "ti2v_2_2",
+        "description": "Lab smoke preset only — pure I2V, no trajectory. Compare against lab_wanmove_e01. Do NOT use as pose-pass / ship signal. 5B pure I2V plateau on uncross→open documented 2026-07-26.",
+        "infos": "## Smoke only\n\n- FastWan 3–4 steps, short clip\n- No custom_guide\n- pose_gate will usually fail open_end — expected\n- Use for UI/pipeline sanity, not leg side-switch",
+        "prompt_infos": "Same short uncross prompt as Move for fair A/B; expect weaker geometry control.",
+        "URLs": "ti2v_2_2",
+        "loras": [
+            "https://huggingface.co/DeepBeepMeep/Wan2.2/resolve/main/loras_accelerators/Wan2_2_5B_FastWanFullAttn_lora_rank_128_bf16.safetensors"
+        ],
+        "group": "wan2_2"
+    },
+    "prompt": "Same woman as the start image, seated upright, locked face. Slowly uncross legs: lower the top knee until both knees are level, then slide knees apart left-right until thighs sit side by side with a clear gap. Hands leave the knee. Feet stay down. No kick. Static camera.",
+    "negative_prompt": "hand stuck on knee, kick, raised leg, lying down, frozen cross, thighs stacked, morphing face, camera move, zoom, pan",
+    "resolution": "640x352",
+    "video_length": 33,
+    "num_inference_steps": 4,
+    "guidance_scale": 3.5,
+    "seed": 33,
+    "force_fps": "24",
+    "flow_shift": 3,
+    "sample_solver": "unipc",
+    "image_prompt_type": "S",
+    "prompt_enhancer": "",
+    "repeat_generation": 3,
+    "output_filename": "lab_ti2v5b_fast_e01"
+}

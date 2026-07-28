@@ -1,0 +1,12 @@
+{
+  "search.exclude": {
+    "wangp/**": true,
+    "data/experiments/**": true,
+    "_logs/**": true
+  },
+  "files.watcherExclude": {
+    "wangp/ckpts/**": true,
+    "wangp/.venv/**": true,
+    "wangp/outputs/**": true
+  }
+}

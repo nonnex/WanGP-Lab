@@ -1,0 +1,10 @@
+{
+  "name": "Lab Bridge",
+  "author": "ai-img-seq-kimi",
+  "version": "0.2.0",
+  "description": "Bridge Lab motor (SAM3D tracks, pose_gate) ↔ WanGP cockpit. Does not modify WanGP core. Uses Lab pipeline/.venv via subprocess.",
+  "type": ["app"],
+  "date": "2026-07-28",
+  "wan2gp_version": "12.3",
+  "uninstallable": true
+}

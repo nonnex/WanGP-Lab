@@ -1,0 +1,22 @@
+{
+    "model": {
+        "name": "Lab · Wan-Move e01 smoke (33f×8)",
+        "architecture": "wanmove",
+        "description": "Faster Move smoke for iteration. Still use hands tracks t33. Promote to lab_wanmove_e01 (49f×16) when motion looks right.",
+        "URLs": "wanmove",
+        "group": "wan"
+    },
+    "prompt": "Same woman as the start image, seated upright, locked face. Slowly uncross legs: lower the top knee, then knees apart side by side. Hands leave the knee. Feet down. No kick. Static camera.",
+    "negative_prompt": "hand stuck on knee, kick, raised leg, lying down, frozen cross, thighs stacked, morphing face, camera move, zoom",
+    "resolution": "832x480",
+    "video_length": 33,
+    "num_inference_steps": 8,
+    "guidance_scale": 4.0,
+    "seed": 33,
+    "force_fps": "24",
+    "flow_shift": 7.0,
+    "sample_solver": "unipc",
+    "image_prompt_type": "S",
+    "prompt_enhancer": "",
+    "output_filename": "lab_wanmove_e01_smoke"
+}

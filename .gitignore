@@ -1,0 +1,187 @@
+# =============================================================================
+# WanGP-Lab — root repository gitignore
+# Suite code under suite/ is tracked. WanGP tree is a nested clone: track source
+# lightly or use submodule; never commit weights, venv, or outputs.
+# =============================================================================
+
+# ----- OS / editor -----
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.code-workspace
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+
+# ----- Logs / temp -----
+_logs/
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+tmp/
+temp/
+.cache/
+
+# ----- Secrets / local overrides -----
+config/local.env
+config/*.local.env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# ----- Suite runtime data (regenerable / large) -----
+data/experiments/
+data/queues/
+data/fixtures/**
+!data/fixtures/.gitkeep
+data/cache/_gate_frames_*/
+data/cache/**/*.mp4
+data/cache/**/*.webm
+data/cache/**/*.mov
+data/cache/**/*.mkv
+
+# Large / binary junk (global) — suite mission assets re-allowed below
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.gguf
+*.bin
+*.onnx
+*.engine
+*.whl
+*.exe
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.rar
+*.npy
+
+# Video / heavy media
+*.mp4
+*.webm
+*.mov
+*.mkv
+*.avi
+*.gif
+*.wav
+*.mp3
+*.flac
+
+# ----- Allow small mission assets in suite cache -----
+!data/cache/wanmove/
+!data/cache/wanmove/**
+!data/cache/wanmove/**/*.jpg
+!data/cache/wanmove/**/*.png
+!data/cache/wanmove/**/*.npy
+!data/cache/wanmove/**/*.json
+!data/cache/wanmove/**/.gitkeep
+!data/experiments/.gitkeep
+
+# =============================================================================
+# Nested WanGP clone (wangp/) — NEVER commit local model/runtime state
+# Upstream already ignores much of this; we reinforce at monorepo root.
+# =============================================================================
+
+# Virtualenv & install
+wangp/.venv/
+wangp/venv/
+wangp/**/__pycache__/
+
+# Model weights & caches (tens of GB)
+wangp/ckpts/
+wangp/loras/
+wangp/loras_i2v/
+wangp/**/*.safetensors
+wangp/**/*.pt
+wangp/**/*.pth
+wangp/**/*.ckpt
+wangp/**/*.gguf
+wangp/**/*.bin
+
+# Generated / user media
+wangp/outputs/
+wangp/outputs2/
+wangp/gradio_outputs/
+wangp/mask_outputs/
+wangp/samples/
+wangp/storage/
+wangp/tmp/
+wangp/cache/
+wangp/ffmpeg_bins/
+wangp/google/
+
+# Local WanGP config (machine-specific; recreate via suite install)
+wangp/wgp_config.json
+wangp/plugins_local.json
+wangp/loras_url_cache.json
+wangp/loras_url_cache_v2.json
+wangp/settings/
+
+# Suite-owned copies live under suite/ — do not track accidental installs inside wangp
+wangp/finetunes/
+wangp/plugins/wan2gp-lab-bridge/
+
+# Nested git metadata if wangp is a full clone (prefer submodule; see docs)
+# Uncomment ONE of the following strategies:
+
+# Nested WanGP clone is LOCAL ONLY (weights/venv live here). Suite repo does not
+# vendor upstream source — use bootstrap_wangp.sh / existing wangp/ checkout.
+wangp/
+
+# WanGP local media patterns (upstream-style)
+wangp/**/*.mp4
+wangp/**/*.webm
+wangp/**/*.mov
+wangp/**/*.mkv
+wangp/**/*.log
+wangp/**/*.zip
+wangp/**/*.npy
+wangp/**/*.pkl
+wangp/**/*.html
+!wangp/plugins/motion_designer/assets/motion_designer_iframe_template.html
+
+# Maps / debug
+**/*.js.map
+*.pdf
+
+# CUDA / build artifacts
+**/*.o
+**/*.so
+**/*.a
+**/build/
+**/dist/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+
+# HuggingFace / torch hub caches if ever created under suite
+**/huggingface/
+**/torch/hub/
