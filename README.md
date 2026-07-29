@@ -38,15 +38,17 @@ bash suite/scripts/start_wangp_ui.sh     # → http://localhost:7860
 | WanGP | `wangp/.venv` |
 | Lab | `$LAB_MOTOR_ROOT/pipeline/.venv` |
 
-## Iterate ladder
+## Iterate ladder (Lab Bridge tab)
 
-| L | | |
-|---|--|--|
-| 0 | `lab_ti2v5b_fast_e01` | smoke |
-| 1 | `lab_wanmove_e01_smoke` | 33f×8 |
-| 2 | `lab_wanmove_e01` | 49f×16 + pose_gate |
-| 3 | multi-seed Move | |
+| L | UI button | |
+|---|-----------|--|
+| 0 | L0 FastWan smoke | UI alive |
+| 1 | L1 Move 33×8 | tracks on-body |
+| 2 | L2 Move 49×16 | + **Gate last** |
+| 3 | multi-seed / track A/B | |
 | 4 | motor e12/ship | only after open_end PASS |
+
+Best seed so far: **7** · tracks **apart-dx 100** · progress ~0.86.
 
 ## Update WanGP upstream
 

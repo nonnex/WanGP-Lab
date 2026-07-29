@@ -2,9 +2,9 @@
     "model": {
         "name": "Lab · Wan-Move e01 (pose hard-case)",
         "architecture": "wanmove",
-        "description": "Lab preset: 675→open knees trajectory I2V. Use still 832×480 + hands tracks .npy as custom_guide. Profile 4 + int8 on 16GB/24GB RAM. Gate with Lab pose_gate open_end after gen.",
-        "infos": "## Lab Wan-Move e01\n\n- **Still:** `_data/cache/wanmove/still_675_832x480.jpg`\n- **Tracks:** `tracks_e01_open_hands_t49.npy` (knees+ankles+wrists)\n- **Gate:** `pipeline/pose_gate.py hop --mode open_end`\n- **Not ship** until open_end pass.\n- Hands tracks move wrists off knee (first-frame glue fix).",
-        "prompt_infos": "## Prompt\nKeep short. Trajectory carries motion. Mention: hands leave knee, feet down, no kick, static camera.",
+        "description": "Mission L2: 675→open knees. Still 832×480 + hands tracks t49 as custom_guide. Profile 4 + int8. Gate pose_gate open_end.",
+        "infos": "## Lab Wan-Move e01 (L2)\n\n- **Still:** `data/cache/wanmove/still_675_832x480.jpg`\n- **Tracks:** `tracks_e01_open_hands_t49.npy` (knees+ankles+wrists, apart-dx 100)\n- **UI:** Lab Bridge → L2 preset → Media → Generate → Gate last\n- **Gate:** open_end; best seed so far **7** (~0.86 uncrossing_height)\n- **Not ship** until open_end PASS.\n- FastWan is smoke only.",
+        "prompt_infos": "## Prompt\nKeep short. Trajectory carries motion. Hands leave knee, feet down, no kick, static camera.",
         "URLs": "wanmove",
         "group": "wan"
     },
@@ -14,7 +14,7 @@
     "video_length": 49,
     "num_inference_steps": 16,
     "guidance_scale": 4.0,
-    "seed": 33,
+    "seed": 7,
     "force_fps": "24",
     "flow_shift": 7.0,
     "sample_solver": "unipc",

@@ -6,7 +6,7 @@
     "video_length": 49,
     "num_inference_steps": 16,
     "guidance_scale": 4.0,
-    "seed": 33,
+    "seed": 7,
     "force_fps": "24",
     "flow_shift": 7.0,
     "sample_solver": "unipc",

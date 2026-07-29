@@ -1,5 +1,5 @@
 {
-  "out": "_data/cache/wanmove/tracks_e01_open_hands_t81.npy",
+  "out": "/home/nick/AI/Projects/WanGP-Lab/data/cache/wanmove/tracks_e01_open_hands_t81.npy",
   "shape": [
     81,
     6,
@@ -8,7 +8,7 @@
   "width": 832,
   "height": 480,
   "frames": 81,
-  "analysis": "_data/analysis/0009",
+  "analysis": "/home/nick/AI/Projects/ai-img-seq-kimi/_data/analysis/0009",
   "src_wh": [
     1920,
     1080

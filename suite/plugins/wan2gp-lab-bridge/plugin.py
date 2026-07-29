@@ -1,6 +1,7 @@
 """Lab Bridge — WanGP plugin (Cockpit ↔ Motor).
 
-Lab tools run in pipeline/.venv only. Never import heavy Lab/torch into WanGP.
+Mission ops: tracks → preview → ladder presets → generate → gate last output.
+Lab tools run in pipeline/.venv only.
 """
 from __future__ import annotations
 
@@ -40,8 +41,20 @@ DEFAULT_SUITE_CACHE = Path(
         str(DEFAULT_SUITE_ROOT / "data" / "cache" / "wanmove"),
     )
 )
+DEFAULT_OUTPUTS = Path(
+    os.environ.get(
+        "WANGP_LAB_OUTPUTS",
+        str(DEFAULT_SUITE_ROOT / "_outputs"),
+    )
+)
+DEFAULT_EXPERIMENTS = Path(
+    os.environ.get(
+        "WANGP_LAB_EXPERIMENTS",
+        str(DEFAULT_SUITE_ROOT / "data" / "experiments"),
+    )
+)
 
-# Track builder: suite SoT, fallback motor lab/tools copy
+
 def _tracks_script(suite: Path, lab: Path) -> Path:
     for p in (
         suite / "suite" / "tools" / "mhr70_to_wanmove_tracks.py",
@@ -91,14 +104,62 @@ def _run_lab(lab: Path, args: list[str], timeout: int = 600) -> tuple[int, str]:
         return 1, f"{type(e).__name__}: {e}"
 
 
+def _newest_video(roots: list[Path]) -> Path | None:
+    cands: list[Path] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for pat in ("*.mp4", "*.webm", "*.mov"):
+            cands.extend(root.glob(pat))
+            cands.extend(root.rglob(pat))
+    cands = [p for p in cands if p.is_file()]
+    if not cands:
+        return None
+    return max(cands, key=lambda p: p.stat().st_mtime)
+
+
+def _leaderboard_md(exp: Path, n: int = 8) -> str:
+    board = exp / "LEADERBOARD.tsv"
+    if not board.is_file():
+        return "_No leaderboard yet. Gate a run to populate._"
+    lines = board.read_text(encoding="utf-8").strip().splitlines()
+    if len(lines) < 2:
+        return "_Leaderboard empty._"
+    hdr = lines[0].split("\t")
+    rows = [ln.split("\t") for ln in lines[1:] if ln.strip()]
+    rows = rows[-n:]
+    # ts seed frames steps ok progress phase note path
+    out = ["| seed | progress | phase | ok | path |", "|------|----------|-------|----|------|"]
+    for r in reversed(rows):
+        def col(name, default=""):
+            try:
+                return r[hdr.index(name)]
+            except Exception:
+                return default
+        out.append(
+            f"| {col('seed')} | **{col('progress')}** | `{col('phase')}` | {col('ok')} | `{col('path')}` |"
+        )
+    return "\n".join(out)
+
+
+def _vis_for_tracks(tracks: Path) -> Path | None:
+    for cand in (
+        tracks.with_suffix(".vis.jpg"),
+        tracks.parent / f"{tracks.stem}.vis.jpg",
+    ):
+        if cand.is_file():
+            return cand
+    return None
+
+
 class LabBridgePlugin(WAN2GPPlugin):
     def __init__(self):
         super().__init__()
         self.name = PLUGIN_NAME
-        self.version = "0.3.0"
+        self.version = "0.4.0"
         self.description = (
-            "Lab motor bridge: Move tracks (SAM3D/MHR70), mission presets, pose_gate. "
-            "Cockpit=WanGP, Motor=Lab."
+            "Mission cockpit: tracks + preview, L0–L2 presets, gate last output, "
+            "leaderboard. Cockpit=WanGP, Motor=Lab."
         )
 
     def setup_ui(self):
@@ -133,90 +194,115 @@ class LabBridgePlugin(WAN2GPPlugin):
             / "_src"
             / "0009_still_day21_10_sophia_dylan_evening_675.jpeg"
         )
+        vis0 = _vis_for_tracks(Path(tracks_default))
 
         with gr.Column() as root:
             gr.Markdown(
-                "## Lab Bridge\n"
-                "**WanGP** = Cockpit · **Lab** = Motor (SAM3D / tracks / pose_gate)\n\n"
-                "Lab tools run in `pipeline/.venv` only. "
-                f"Suite cache: `{cache}`"
+                "## Lab Bridge — mission cockpit\n"
+                "**WanGP** = gen UI · **Lab** = SAM3D / tracks / pose_gate  \n"
+                f"Cache `{cache}` · outputs `{DEFAULT_OUTPUTS}`"
             )
+
+            with gr.Accordion("Mission status", open=True):
+                status = gr.Markdown(
+                    value=self._status_md(DEFAULT_LAB_ROOT, DEFAULT_WGP_ROOT)
+                )
+                leaderboard = gr.Markdown(
+                    value=_leaderboard_md(DEFAULT_EXPERIMENTS),
+                    label="Leaderboard",
+                )
+                btn_refresh_lb = gr.Button("Refresh leaderboard / status", size="sm")
+
             with gr.Accordion("Paths", open=False):
-                suite_root = gr.Textbox(label="Suite root (WanGP-Lab)", value=suite_default)
+                suite_root = gr.Textbox(label="Suite root", value=suite_default)
                 lab_root = gr.Textbox(label="Lab motor root", value=lab_default)
                 wgp_root = gr.Textbox(label="WanGP root", value=wgp_default)
-                analysis_dir = gr.Textbox(
-                    label="SAM3D analysis dir (sam3d_body.npz)",
-                    value=analysis_default,
-                )
-                src_still = gr.Textbox(
-                    label="Full-res source still (cover-crop coords)",
-                    value=src_still_default,
-                )
+                analysis_dir = gr.Textbox(label="SAM3D analysis dir", value=analysis_default)
+                src_still = gr.Textbox(label="Full-res source still", value=src_still_default)
                 out_still = gr.Textbox(label="Target still 832×480", value=still_default)
-                out_tracks = gr.Textbox(label="Tracks .npy out", value=tracks_default)
+                out_tracks = gr.Textbox(label="Tracks .npy", value=tracks_default)
 
+            gr.Markdown("### 1 · Tracks")
             with gr.Row():
                 frames = gr.Dropdown(choices=[33, 49, 81], value=49, label="Frames")
-                steps = gr.Dropdown(
-                    choices=[8, 12, 16, 24, 30], value=16, label="Steps (preset)"
+                apart_dx = gr.Dropdown(
+                    choices=[80, 100, 120, 140],
+                    value=100,
+                    label="apart-dx (px)",
+                    info="100=best so far; 140 overshot dy",
                 )
-                seed = gr.Number(value=33, label="Seed", precision=0)
-
-            with gr.Row():
+                btn_tracks = gr.Button("Build tracks (Lab)", variant="primary")
                 btn_paths = gr.Button("Check paths")
-                btn_tracks = gr.Button("1 · Build tracks (Lab)", variant="primary")
-                btn_preset_move = gr.Button("2 · Apply Move e01 preset")
-                btn_preset_fast = gr.Button("2b · FastWan smoke preset")
-
-            with gr.Row():
-                btn_goto = gr.Button("3 · Open Media tab")
-                btn_switch_move = gr.Button("Model → lab_wanmove_e01")
-                btn_switch_fast = gr.Button("Model → lab_ti2v5b_fast_e01")
-
-            gr.Markdown("### After Generate — paste mp4 or frames dir, then gate.")
-            video_or_frames = gr.Textbox(
-                label="Output mp4 or frames directory",
-                placeholder="/path/to/out.mp4 or .../frames",
+            track_preview = gr.Image(
+                label="Track preview (vis)",
+                value=str(vis0) if vis0 else None,
+                type="filepath",
+                height=220,
             )
-            btn_gate = gr.Button("4 · pose_gate open_end (Lab)", variant="primary")
-            log = gr.Textbox(label="Log", lines=16, max_lines=30)
-            gate_json_out = gr.Textbox(label="Last gate JSON (summary)", lines=8)
-            status = gr.Markdown(
-                value=self._status_md(DEFAULT_LAB_ROOT, DEFAULT_WGP_ROOT)
+
+            gr.Markdown(
+                "### 2 · Ladder presets → main form\n"
+                "L0 smoke only · L1 Move 33×8 · L2 Move 49×16 (mission). "
+                "Also sets `image_start` + `custom_guide` when files exist."
+            )
+            with gr.Row():
+                steps = gr.Dropdown(
+                    choices=[8, 12, 16, 24, 30], value=16, label="Steps (L2 override)"
+                )
+                seed = gr.Number(value=7, label="Seed", precision=0, info="7 best progress")
+            with gr.Row():
+                btn_l0 = gr.Button("L0 FastWan smoke")
+                btn_l1 = gr.Button("L1 Move smoke 33×8")
+                btn_l2 = gr.Button("L2 Move e01 49×16", variant="primary")
+            with gr.Row():
+                btn_switch_move = gr.Button("Model → lab_wanmove_e01")
+                btn_switch_smoke = gr.Button("Model → lab_wanmove_e01_smoke")
+                btn_switch_fast = gr.Button("Model → lab_ti2v5b_fast_e01")
+                btn_goto = gr.Button("Open Media tab")
+
+            gr.Markdown("### 3 · After Generate — gate")
+            video_or_frames = gr.Textbox(
+                label="mp4 / frames dir (optional if using Gate last)",
+                placeholder="auto: newest under _outputs/ or leave empty",
+            )
+            with gr.Row():
+                btn_gate_last = gr.Button("Gate last UI output", variant="primary")
+                btn_gate = gr.Button("Gate path above")
+            gate_json_out = gr.Textbox(label="Gate summary", lines=10)
+            log = gr.Textbox(label="Log", lines=12, max_lines=28)
+
+        # ----- handlers -----
+        def refresh_status(lab_s, wgp_s):
+            lab, wgp = Path(lab_s), Path(wgp_s)
+            return (
+                self._status_md(lab, wgp),
+                _leaderboard_md(DEFAULT_EXPERIMENTS),
             )
 
         def check_paths(suite_s, lab_s, wgp_s):
-            suite = Path(suite_s)
-            lab = Path(lab_s)
-            wgp = Path(wgp_s)
+            suite, lab, wgp = Path(suite_s), Path(lab_s), Path(wgp_s)
             lines = [
-                f"Suite root: {suite.is_dir()} — {suite}",
-                f"Lab root: {lab.is_dir()} — {lab}",
-                f"Lab python: {_lab_py(lab).is_file()} — {_lab_py(lab)}",
-                f"WanGP root: {wgp.is_dir()} — {wgp}",
-                f"WanGP python: {(wgp / '.venv/bin/python').is_file()}",
+                f"Suite: {suite.is_dir()} — {suite}",
+                f"Lab py: {_lab_py(lab).is_file()} — {_lab_py(lab)}",
+                f"WanGP py: {(wgp / '.venv/bin/python').is_file()}",
+                f"tracks script: {_tracks_script(suite, lab)}",
+                f"pose_gate: {(lab / 'pipeline/pose_gate.py').is_file()}",
+                f"finetune e01: {(wgp / 'finetunes/lab_wanmove_e01.json').is_file()}",
+                f"plugin: {(wgp / 'plugins/wan2gp-lab-bridge').is_dir()}",
+                f"still: {(DEFAULT_SUITE_CACHE / 'still_675_832x480.jpg').is_file()}",
+                f"tracks49: {(DEFAULT_SUITE_CACHE / 'tracks_e01_open_hands_t49.npy').is_file()}",
+                f"_outputs: {DEFAULT_OUTPUTS.is_dir()} link={os.path.islink(wgp / 'outputs')}",
             ]
-            ts = _tracks_script(suite, lab)
-            lines.append(f"tracks script: {ts.is_file()} — {ts}")
-            lines.append(
-                f"pose_gate: {(lab / 'pipeline/pose_gate.py').is_file()}"
-            )
-            lines.append(
-                f"finetune lab_wanmove_e01: {(wgp / 'finetunes/lab_wanmove_e01.json').is_file()}"
-            )
-            lines.append(
-                f"plugin dir: {(wgp / 'plugins/wan2gp-lab-bridge').is_dir()}"
-            )
-            lines.append(f"suite cache: {DEFAULT_SUITE_CACHE.is_dir()} — {DEFAULT_SUITE_CACHE}")
-            return "\n".join(lines), self._status_md(lab, wgp)
+            newest = _newest_video([DEFAULT_OUTPUTS, wgp / "outputs"])
+            lines.append(f"newest video: {newest}")
+            return "\n".join(lines), *refresh_status(lab_s, wgp_s)
 
         def build_tracks(
-            suite_s, lab_s, analysis_s, src_s, out_still_s, out_tracks_s, nframes
+            suite_s, lab_s, analysis_s, src_s, out_still_s, out_tracks_s, nframes, apart
         ):
-            suite = Path(suite_s)
-            lab = Path(lab_s)
+            suite, lab = Path(suite_s), Path(lab_s)
             nframes = int(nframes)
+            apart = float(apart)
             still_p = Path(out_still_s)
             src_p = Path(src_s)
             if not still_p.is_file() and src_p.is_file():
@@ -243,17 +329,18 @@ print('wrote', dst)
                     timeout=120,
                 )
                 if code != 0:
-                    return f"still resize failed:\n{out}", gr.update()
+                    return f"still resize failed:\n{out}", gr.update(), gr.update()
 
             tracks_script = _tracks_script(suite, lab)
             if not tracks_script.is_file():
-                return f"tracks script missing: {tracks_script}", gr.update()
+                return f"tracks script missing: {tracks_script}", gr.update(), gr.update()
 
             out_t = Path(out_tracks_s)
             if f"t{nframes}" not in out_t.name:
                 out_t = out_t.parent / f"tracks_e01_open_hands_t{nframes}.npy"
             out_t.parent.mkdir(parents=True, exist_ok=True)
 
+            # keep variant copy when apart != 100
             code, out = _run_lab(
                 lab,
                 [
@@ -273,11 +360,16 @@ print('wrote', dst)
                     "--height",
                     "480",
                     "--apart-dx",
-                    "100",
+                    str(apart),
                     "--vis",
                 ],
                 timeout=300,
             )
+            if out_t.is_file() and apart != 100:
+                variant = out_t.parent / f"{out_t.stem}_apart{int(apart)}.npy"
+                shutil.copy2(out_t, variant)
+                out += f"\nvariant {variant}"
+
             wgp_mask = DEFAULT_WGP_ROOT / "mask_outputs"
             try:
                 wgp_mask.mkdir(parents=True, exist_ok=True)
@@ -287,9 +379,15 @@ print('wrote', dst)
                     shutil.copy2(still_p, wgp_mask / still_p.name)
             except Exception as e:
                 out += f"\ncopy mask_outputs: {e}"
-            return f"exit={code}\ntracks={out_t}\n{out}", str(out_t)
 
-        def apply_move_preset(state, nframes, nsteps, seed_v):
+            vis = _vis_for_tracks(out_t)
+            return (
+                f"exit={code}\ntracks={out_t}\napart-dx={apart}\n{out}",
+                str(out_t),
+                str(vis) if vis else None,
+            )
+
+        def _apply_move(state, nframes, nsteps, seed_v, still_s, tracks_s, tag: str):
             settings = self.get_current_model_settings(state)
             settings["prompt"] = PROMPT_E01
             settings["negative_prompt"] = NEG_E01
@@ -303,17 +401,40 @@ print('wrote', dst)
             settings["sample_solver"] = "unipc"
             settings["image_prompt_type"] = "S"
             settings["prompt_enhancer"] = ""
-            settings["output_filename"] = "lab_wanmove_e01"
-            tpath = DEFAULT_SUITE_CACHE / f"tracks_e01_open_hands_t{int(nframes)}.npy"
-            if tpath.is_file():
-                settings["custom_guide"] = str(tpath)
-            return (
-                time.time(),
-                f"Move preset applied.\ncustom_guide={settings.get('custom_guide')}\n"
-                "→ set Start image + Generate on Media tab.",
+            settings["output_filename"] = tag
+            still_p = Path(still_s) if still_s else DEFAULT_SUITE_CACHE / "still_675_832x480.jpg"
+            tracks_p = (
+                Path(tracks_s)
+                if tracks_s
+                else DEFAULT_SUITE_CACHE / f"tracks_e01_open_hands_t{int(nframes)}.npy"
+            )
+            if not tracks_p.is_file():
+                alt = DEFAULT_SUITE_CACHE / f"tracks_e01_open_hands_t{int(nframes)}.npy"
+                if alt.is_file():
+                    tracks_p = alt
+            if still_p.is_file():
+                settings["image_start"] = str(still_p.resolve())
+            if tracks_p.is_file():
+                settings["custom_guide"] = str(tracks_p.resolve())
+            msg = (
+                f"{tag} preset → form\n"
+                f"frames={nframes} steps={nsteps} seed={seed_v}\n"
+                f"image_start={settings.get('image_start')}\n"
+                f"custom_guide={settings.get('custom_guide')}\n"
+                "→ Media tab → Generate"
+            )
+            return time.time(), msg
+
+        def apply_l2(state, nsteps, seed_v, still_s, tracks_s):
+            return _apply_move(state, 49, int(nsteps), seed_v, still_s, tracks_s, "lab_wanmove_e01")
+
+        def apply_l1(state, seed_v, still_s, tracks_s):
+            t = DEFAULT_SUITE_CACHE / "tracks_e01_open_hands_t33.npy"
+            return _apply_move(
+                state, 33, 8, seed_v, still_s, str(t) if t.is_file() else tracks_s, "lab_wanmove_e01_smoke"
             )
 
-        def apply_fast_preset(state, seed_v):
+        def apply_l0(state, seed_v, still_s):
             settings = self.get_current_model_settings(state)
             settings["prompt"] = PROMPT_E01
             settings["negative_prompt"] = NEG_E01
@@ -330,21 +451,47 @@ print('wrote', dst)
             settings["repeat_generation"] = 3
             settings["custom_guide"] = None
             settings["output_filename"] = "lab_ti2v5b_fast_e01"
+            still_p = Path(still_s) if still_s else DEFAULT_SUITE_CACHE / "still_675_640x352.jpg"
+            if not still_p.is_file():
+                still_p = DEFAULT_SUITE_CACHE / "still_675_640x352.jpg"
+            if still_p.is_file():
+                settings["image_start"] = str(still_p.resolve())
             return (
                 time.time(),
-                "FastWan smoke preset (no tracks). Smoke only — not pose pass.",
+                "L0 FastWan smoke (no tracks). Not a pose pass.\n"
+                f"image_start={settings.get('image_start')}",
             )
 
         def run_gate(lab_s, path_s):
             lab = Path(lab_s)
-            path = Path(path_s.strip()) if path_s else None
-            if not path or not path.exists():
+            path = Path(path_s.strip()) if path_s and path_s.strip() else None
+            if path is None or not path.exists():
                 return "Need existing mp4 or frames dir", ""
+            return _gate_path(lab, path)
+
+        def gate_last(lab_s, path_s):
+            lab = Path(lab_s)
+            path = Path(path_s.strip()) if path_s and path_s.strip() else None
+            if path is None or not path.exists():
+                path = _newest_video(
+                    [
+                        DEFAULT_OUTPUTS,
+                        DEFAULT_WGP_ROOT / "outputs",
+                        DEFAULT_EXPERIMENTS,
+                    ]
+                )
+            if path is None:
+                return "No video found under _outputs/ or experiments/", ""
+            msg, summary = _gate_path(lab, path)
+            return f"gated: {path}\n{msg}", summary
+
+        def _gate_path(lab: Path, path: Path) -> tuple[str, str]:
             frames_dir = path
             gate_cache = DEFAULT_SUITE_CACHE
             gate_cache.mkdir(parents=True, exist_ok=True)
+            tmp = None
             if path.is_file() and path.suffix.lower() in (".mp4", ".webm", ".mov"):
-                tmp = gate_cache / f"_gate_frames_{datetime.now().strftime('%H%M%S')}"
+                tmp = DEFAULT_EXPERIMENTS / f"_gate_frames_{datetime.now().strftime('%H%M%S')}"
                 tmp.mkdir(parents=True, exist_ok=True)
                 code, out = _run_lab(
                     lab,
@@ -369,7 +516,9 @@ print('frames', len(list(out.glob('*.jpg'))))
             elif not path.is_dir():
                 return "path must be mp4 or directory", ""
 
-            gate_out = gate_cache / "last_pose_gate_open_end.json"
+            gate_out = DEFAULT_EXPERIMENTS / "last_pose_gate_open_end.json"
+            # also suite cache rolling for back-compat
+            gate_out_cache = gate_cache / "last_pose_gate_open_end.json"
             code, out = _run_lab(
                 lab,
                 [
@@ -384,6 +533,14 @@ print('frames', len(list(out.glob('*.jpg'))))
                 ],
                 timeout=600,
             )
+            if gate_out.is_file():
+                try:
+                    shutil.copy2(gate_out, gate_out_cache)
+                except Exception:
+                    pass
+            if tmp is not None:
+                shutil.rmtree(tmp, ignore_errors=True)
+
             summary = ""
             if gate_out.is_file():
                 try:
@@ -400,14 +557,43 @@ print('frames', len(list(out.glob('*.jpg'))))
                         },
                         indent=2,
                     )
+                    # append leaderboard if missing path context
+                    board = DEFAULT_EXPERIMENTS / "LEADERBOARD.tsv"
+                    if not board.is_file():
+                        board.write_text(
+                            "ts\tseed\tframes\tsteps\tok\tprogress\tphase\tnote\tpath\n",
+                            encoding="utf-8",
+                        )
+                    with board.open("a", encoding="utf-8") as f:
+                        f.write(
+                            "\t".join(
+                                [
+                                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                                    "ui",
+                                    "?",
+                                    "?",
+                                    str(bool(d.get("ok"))),
+                                    f"{float(d.get('progress') or 0):.4f}",
+                                    str(d.get("phase") or ""),
+                                    str(d.get("note") or "").replace("\t", " "),
+                                    path.name,
+                                ]
+                            )
+                            + "\n"
+                        )
                 except Exception as e:
                     summary = str(e)
             return f"exit={code} (0=pass, 3=fail open)\n{out}", summary
 
+        btn_refresh_lb.click(
+            fn=refresh_status,
+            inputs=[lab_root, wgp_root],
+            outputs=[status, leaderboard],
+        )
         btn_paths.click(
             fn=check_paths,
             inputs=[suite_root, lab_root, wgp_root],
-            outputs=[log, status],
+            outputs=[log, status, leaderboard],
         )
         btn_tracks.click(
             fn=build_tracks,
@@ -419,17 +605,23 @@ print('frames', len(list(out.glob('*.jpg'))))
                 out_still,
                 out_tracks,
                 frames,
+                apart_dx,
             ],
-            outputs=[log, out_tracks],
+            outputs=[log, out_tracks, track_preview],
         )
-        btn_preset_move.click(
-            fn=apply_move_preset,
-            inputs=[self.state, frames, steps, seed],
+        btn_l2.click(
+            fn=apply_l2,
+            inputs=[self.state, steps, seed, out_still, out_tracks],
             outputs=[self.refresh_form_trigger, log],
         )
-        btn_preset_fast.click(
-            fn=apply_fast_preset,
-            inputs=[self.state, seed],
+        btn_l1.click(
+            fn=apply_l1,
+            inputs=[self.state, seed, out_still, out_tracks],
+            outputs=[self.refresh_form_trigger, log],
+        )
+        btn_l0.click(
+            fn=apply_l0,
+            inputs=[self.state, seed, out_still],
             outputs=[self.refresh_form_trigger, log],
         )
         btn_goto.click(
@@ -439,6 +631,11 @@ print('frames', len(list(out.glob('*.jpg'))))
         )
         btn_switch_move.click(
             fn=lambda: self.switch_to_model("lab_wanmove_e01", True),
+            outputs=[self.model_choice_target, self.main_tabs],
+            show_progress="hidden",
+        )
+        btn_switch_smoke.click(
+            fn=lambda: self.switch_to_model("lab_wanmove_e01_smoke", True),
             outputs=[self.model_choice_target, self.main_tabs],
             show_progress="hidden",
         )
@@ -452,14 +649,27 @@ print('frames', len(list(out.glob('*.jpg'))))
             inputs=[lab_root, video_or_frames],
             outputs=[log, gate_json_out],
         )
+        btn_gate_last.click(
+            fn=gate_last,
+            inputs=[lab_root, video_or_frames],
+            outputs=[log, gate_json_out],
+        )
         return root
 
     @staticmethod
     def _status_md(lab: Path, wgp: Path) -> str:
         ok_lab = _lab_py(lab).is_file()
         ok_ft = (wgp / "finetunes" / "lab_wanmove_e01.json").is_file()
+        still = DEFAULT_SUITE_CACHE / "still_675_832x480.jpg"
+        tracks = DEFAULT_SUITE_CACHE / "tracks_e01_open_hands_t49.npy"
+        newest = _newest_video([DEFAULT_OUTPUTS, wgp / "outputs"])
         return (
             f"**Status:** Lab venv `{'OK' if ok_lab else 'MISSING'}` · "
-            f"finetune `{'OK' if ok_ft else 'run install_bridge.sh'}` · "
-            f"profile **4** · sage · int8"
+            f"finetune `{'OK' if ok_ft else 'install_bridge'}` · "
+            f"still `{'OK' if still.is_file() else 'MISS'}` · "
+            f"tracks49 `{'OK' if tracks.is_file() else 'MISS'}` · "
+            f"profile **4** · sage · int8  \n"
+            f"newest out: `{newest.name if newest else '—'}`  \n"
+            f"ladder: **L0** FastWan → **L1** Move 33×8 → **L2** Move 49×16 + gate → "
+            f"**L3** multi-seed → **L4** motor e12 only if open_end PASS"
         )
