@@ -233,11 +233,16 @@ class LabBridgePlugin(WAN2GPPlugin):
                 )
                 btn_tracks = gr.Button("Build tracks (Lab)", variant="primary")
                 btn_paths = gr.Button("Check paths")
+            gr.Markdown(
+                "Preview = **6 control points** (knees / ankles / wrists), not a full skeleton.  \n"
+                "**Cyan = START** (crossed) · **Lime = END** (open target) · grey = path.  \n"
+                "Rebuild tracks to refresh the image."
+            )
             track_preview = gr.Image(
-                label="Track preview (vis)",
+                label="Track preview (START | END + trails)",
                 value=str(vis0) if vis0 else None,
                 type="filepath",
-                height=220,
+                height=360,
             )
 
             gr.Markdown(

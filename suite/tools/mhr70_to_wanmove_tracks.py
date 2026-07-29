@@ -171,23 +171,81 @@ def build_e01_open_tracks(
 
 
 def vis_overlay(still: Path, tracks: np.ndarray, out: Path, width: int, height: int) -> None:
+    """Readable mission preview — NOT a full skeleton.
+
+    Wan-Move guide has only 6 points:
+      0 L_knee · 1 R_knee · 2 L_ankle · 3 R_ankle · 4 R_wrist · 5 L_wrist
+
+    Layout (2×2 of still size):
+      [ START cyan ] [ END lime ]
+      [ full still + faint trails + both poses ]
+    """
     from PIL import Image, ImageDraw
 
-    img = Image.open(still).convert("RGB").resize((width, height), Image.BICUBIC)
-    dr = ImageDraw.Draw(img)
-    colors = [(0, 255, 128), (255, 80, 80), (80, 180, 255), (255, 200, 0)]
-    T = tracks.shape[0]
-    for n in range(tracks.shape[1]):
-        pts = [(float(tracks[t, n, 0]), float(tracks[t, n, 1])) for t in range(T)]
+    labels = ["L_knee", "R_knee", "L_ankle", "R_ankle", "R_wrist", "L_wrist"]
+    bones = [(0, 2), (1, 3), (0, 1)]  # shin lines + knee bar
+    COL_START = (80, 200, 255)
+    COL_END = (80, 255, 120)
+    COL_TRAIL = (100, 100, 120)
+
+    base = Image.open(still).convert("RGB").resize((width, height), Image.BICUBIC)
+    T = int(tracks.shape[0])
+    N = int(tracks.shape[1])
+
+    def xy(t: int, n: int) -> tuple[float, float]:
+        return float(tracks[t, n, 0]), float(tracks[t, n, 1])
+
+    def draw_pose(dr: ImageDraw.ImageDraw, t: int, color: tuple[int, int, int], tag: str) -> None:
+        for a, b in bones:
+            if a < N and b < N:
+                dr.line([xy(t, a), xy(t, b)], fill=color, width=3)
+        for n in range(min(N, len(labels))):
+            x, y = xy(t, n)
+            r = 6
+            dr.ellipse((x - r, y - r, x + r, y + r), fill=color, outline=(0, 0, 0))
+            dr.text((x + 8, y - 8), labels[n], fill=color)
+        mx = 0.5 * (xy(t, 0)[0] + xy(t, 1)[0])
+        my = min(xy(t, 0)[1], xy(t, 1)[1]) - 22
+        dr.text((mx - 24, my), tag, fill=color)
+
+    left = base.copy()
+    right = base.copy()
+    draw_pose(ImageDraw.Draw(left), 0, COL_START, "START")
+    draw_pose(ImageDraw.Draw(right), T - 1, COL_END, "END open")
+    ImageDraw.Draw(left).rectangle((0, 0, width, 28), fill=(0, 0, 0))
+    ImageDraw.Draw(left).text((8, 6), "t=0  crossed (cyan)", fill=COL_START)
+    ImageDraw.Draw(right).rectangle((0, 0, width, 28), fill=(0, 0, 0))
+    ImageDraw.Draw(right).text((8, 6), f"t={T - 1}  open target (lime)", fill=COL_END)
+
+    both = base.copy()
+    drb = ImageDraw.Draw(both)
+    for n in range(N):
+        pts = [xy(t, n) for t in range(0, T, max(1, T // 24))]
         if len(pts) >= 2:
-            dr.line(pts, fill=colors[n % 4], width=2)
-        for t in (0, T // 2, T - 1):
-            x, y = pts[t]
-            r = 4 if t == 0 else 3
-            dr.ellipse((x - r, y - r, x + r, y + r), outline=colors[n % 4], width=2)
+            drb.line(pts, fill=COL_TRAIL, width=2)
+    draw_pose(drb, 0, COL_START, "S")
+    draw_pose(drb, T - 1, COL_END, "E")
+    drb.rectangle((0, 0, width, 28), fill=(0, 0, 0))
+    drb.text(
+        (8, 6),
+        "6-pt guide only (knees/ankles/wrists) — not full skeleton",
+        fill=(220, 220, 220),
+    )
+
+    canvas = Image.new("RGB", (width * 2, height * 2), (20, 20, 24))
+    canvas.paste(left, (0, 0))
+    canvas.paste(right, (width, 0))
+    canvas.paste(both.resize((width * 2, height), Image.BICUBIC), (0, height))
+
     out.parent.mkdir(parents=True, exist_ok=True)
-    img.save(out)
+    canvas.save(out, quality=92)
+    # compact single-panel for small UI thumbnails
+    single = out.with_name(out.name.replace(".vis.jpg", ".vis_single.jpg"))
+    if single == out:
+        single = out.with_suffix(".vis_single.jpg")
+    both.save(single, quality=90)
     print("vis", out)
+    print("vis_single", single)
 
 
 def main() -> int:
