@@ -80,6 +80,8 @@ export AIIMGSEQ_WANGP_ROOT="$WANGP_ROOT"
 export WANGP_LAB_ROOT WANGP_LAB_CACHE WANGP_LAB_EXPERIMENTS WANGP_LAB_OUTPUTS
 export GRADIO_SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
 export GRADIO_SERVER_PORT="${PORT}"
+# Allow Lab Bridge to show stills/tracks/previews from suite paths
+export GRADIO_ALLOWED_PATHS="${GRADIO_ALLOWED_PATHS:-${WANGP_LAB_ROOT}/data/cache/wanmove,${WANGP_LAB_ROOT}/_outputs,${WANGP_LAB_ROOT}/data/experiments,${LAB_MOTOR_ROOT}/_data,${LAB_MOTOR_ROOT}/_src}"
 
 echo "WanGP-Lab UI | profile=$PROFILE attention=$ATTN port=$PORT"
 echo "  suite  $WANGP_LAB_ROOT"

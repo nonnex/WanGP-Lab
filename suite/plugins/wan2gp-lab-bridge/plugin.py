@@ -148,8 +148,40 @@ def _vis_for_tracks(tracks: Path) -> Path | None:
         tracks.parent / f"{tracks.stem}.vis.jpg",
     ):
         if cand.is_file():
-            return cand
+            return _gradio_safe_image(cand)
     return None
+
+
+def _gradio_safe_image(src: Path | None) -> Path | None:
+    """Gradio only serves files under CWD (wangp/), /tmp, or allowed_paths.
+
+    Copy mission cache images into wangp/mask_outputs/ so Image components work
+    even before GRADIO_ALLOWED_PATHS is set.
+    """
+    if src is None:
+        return None
+    src = Path(src)
+    if not src.is_file():
+        return None
+    try:
+        dst_dir = DEFAULT_WGP_ROOT / "mask_outputs"
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        dst = dst_dir / src.name
+        if (
+            not dst.is_file()
+            or dst.stat().st_mtime < src.stat().st_mtime
+            or dst.stat().st_size != src.stat().st_size
+        ):
+            shutil.copy2(src, dst)
+        return dst
+    except Exception:
+        # last resort: /tmp
+        try:
+            tmp = Path("/tmp") / f"wangp_lab_{src.name}"
+            shutil.copy2(src, tmp)
+            return tmp
+        except Exception:
+            return src
 
 
 class LabBridgePlugin(WAN2GPPlugin):
