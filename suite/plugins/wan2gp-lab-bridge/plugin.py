@@ -152,17 +152,24 @@ def _vis_for_tracks(tracks: Path) -> Path | None:
     return None
 
 
-def _gradio_safe_image(src: Path | None) -> Path | None:
-    """Gradio only serves files under CWD (wangp/), /tmp, or allowed_paths.
+def _gradio_safe_path(src: Path | str | None) -> Path | None:
+    """Copy any suite file into wangp/ so Gradio + form fields accept it.
 
-    Copy mission cache images into wangp/mask_outputs/ so Image components work
-    even before GRADIO_ALLOWED_PATHS is set.
+    wgp.py launch() hardcodes allowed_paths (CWD=wangp, outputs, …).
+    Suite cache under data/cache is rejected → always stage under mask_outputs/.
     """
     if src is None:
         return None
     src = Path(src)
     if not src.is_file():
         return None
+    try:
+        src_res = src.resolve()
+        wgp_res = DEFAULT_WGP_ROOT.resolve()
+        if src_res == wgp_res or wgp_res in src_res.parents:
+            return src_res
+    except Exception:
+        pass
     try:
         dst_dir = DEFAULT_WGP_ROOT / "mask_outputs"
         dst_dir.mkdir(parents=True, exist_ok=True)
@@ -173,15 +180,18 @@ def _gradio_safe_image(src: Path | None) -> Path | None:
             or dst.stat().st_size != src.stat().st_size
         ):
             shutil.copy2(src, dst)
-        return dst
+        return dst.resolve()
     except Exception:
-        # last resort: /tmp
         try:
             tmp = Path("/tmp") / f"wangp_lab_{src.name}"
             shutil.copy2(src, tmp)
             return tmp
         except Exception:
             return src
+
+
+def _gradio_safe_image(src: Path | None) -> Path | None:
+    return _gradio_safe_path(src)
 
 
 class LabBridgePlugin(WAN2GPPlugin):
@@ -449,10 +459,12 @@ print('wrote', dst)
                 alt = DEFAULT_SUITE_CACHE / f"tracks_e01_open_hands_t{int(nframes)}.npy"
                 if alt.is_file():
                     tracks_p = alt
-            if still_p.is_file():
-                settings["image_start"] = str(still_p.resolve())
-            if tracks_p.is_file():
-                settings["custom_guide"] = str(tracks_p.resolve())
+            still_ok = _gradio_safe_path(still_p if still_p.is_file() else None)
+            tracks_ok = _gradio_safe_path(tracks_p if tracks_p.is_file() else None)
+            if still_ok is not None:
+                settings["image_start"] = str(still_ok)
+            if tracks_ok is not None:
+                settings["custom_guide"] = str(tracks_ok)
             msg = (
                 f"{tag} preset → form\n"
                 f"frames={nframes} steps={nsteps} seed={seed_v}\n"
@@ -491,8 +503,9 @@ print('wrote', dst)
             still_p = Path(still_s) if still_s else DEFAULT_SUITE_CACHE / "still_675_640x352.jpg"
             if not still_p.is_file():
                 still_p = DEFAULT_SUITE_CACHE / "still_675_640x352.jpg"
-            if still_p.is_file():
-                settings["image_start"] = str(still_p.resolve())
+            still_ok = _gradio_safe_path(still_p if still_p.is_file() else None)
+            if still_ok is not None:
+                settings["image_start"] = str(still_ok)
             return (
                 time.time(),
                 "L0 FastWan smoke (no tracks). Not a pose pass.\n"
