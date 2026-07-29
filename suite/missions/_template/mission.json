@@ -1,0 +1,69 @@
+{
+  "id": "my_case",
+  "title": "My hard-case (edit me)",
+  "description": "One-sentence goal for this still→motion problem.",
+  "version": 1,
+  "gate": {
+    "mode": "open_end",
+    "tool": "pose_gate",
+    "pass_key": "ok"
+  },
+  "assets": {
+    "cache_dir": "data/cache/my_case",
+    "still": "data/cache/my_case/still_832x480.jpg",
+    "still_smoke": "data/cache/my_case/still_640x352.jpg",
+    "tracks": {
+      "33": "data/cache/my_case/tracks_t33.npy",
+      "49": "data/cache/my_case/tracks_t49.npy",
+      "81": "data/cache/my_case/tracks_t81.npy"
+    }
+  },
+  "track_build": {
+    "enabled": true,
+    "analysis": "",
+    "src_still": "",
+    "width": 832,
+    "height": 480,
+    "apart_dx_default": 100,
+    "script": "suite/tools/mhr70_to_wanmove_tracks.py"
+  },
+  "ladder": {
+    "L0": {
+      "label": "Smoke I2V",
+      "model": "lab_ti2v5b_fast_e01",
+      "frames": 33,
+      "steps": 4,
+      "seed": 33,
+      "resolution": "640x352",
+      "use_tracks": false,
+      "guidance_scale": 3.5,
+      "flow_shift": 3
+    },
+    "L1": {
+      "label": "Move smoke",
+      "model": "lab_wanmove_e01_smoke",
+      "frames": 33,
+      "steps": 8,
+      "seed": 33,
+      "resolution": "832x480",
+      "use_tracks": true,
+      "guidance_scale": 4.0,
+      "flow_shift": 7.0
+    },
+    "L2": {
+      "label": "Move mission",
+      "model": "lab_wanmove_e01",
+      "frames": 49,
+      "steps": 16,
+      "seed": 33,
+      "resolution": "832x480",
+      "use_tracks": true,
+      "guidance_scale": 4.0,
+      "flow_shift": 7.0
+    }
+  },
+  "prompt": "Describe the motion. Keep short. Trajectory carries geometry.",
+  "negative_prompt": "identity drift, camera move, morphing, unwanted motion",
+  "output_filename": "lab_mission_my_case",
+  "notes": []
+}

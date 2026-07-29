@@ -1,8 +1,8 @@
 {
   "name": "Lab Bridge",
   "author": "WanGP-Lab",
-  "version": "0.4.0",
-  "description": "Mission cockpit: tracks+preview, L0–L2 presets, gate last UI output, leaderboard. Lab pipeline/.venv via subprocess only.",
+  "version": "0.5.0",
+  "description": "Generic mission cockpit: suite/missions recipes, L0–L2 ladder, tracks, gate last + next-action, run cards. Not hard-coded to a single still.",
   "type": ["app"],
   "date": "2026-07-29",
   "wan2gp_version": "12.3",

@@ -10,6 +10,7 @@ Primary hard-case: day21_10 leg uncross→open (675→open), then side-switch to
 
 | Path | Role |
 |------|------|
+| `suite/missions/` | generic hard-case recipes (e01 = one pack) |
 | `suite/finetunes/` | `lab_wanmove_*`, `lab_ti2v5b_fast_*` |
 | `suite/plugins/wan2gp-lab-bridge/` | Mission cockpit: tracks+preview, L0–L2, gate last |
 | `suite/scripts/` | install, start UI, status, gate, tracks, Windows shortcut |

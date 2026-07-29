@@ -31,3 +31,11 @@
 
 - Multi-fixture derive → tracks
 - Night batch queue
+
+## Done (generic missions 0.5)
+
+- `suite/missions/` recipe packs + template
+- mission_lib: load/stage/ladder/run_card/gate hints
+- Lab Bridge 0.5 mission dropdown (not e01-hardcoded)
+- image_start as list (Motion Designer style)
+- run_mission.sh headless by mission id

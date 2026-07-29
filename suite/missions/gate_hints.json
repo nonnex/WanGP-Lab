@@ -1,0 +1,27 @@
+{
+  "_doc": "Generic pose_gate phase → researcher next action. Not e01-specific; add phases as motor gains modes.",
+  "uncrossing_height": {
+    "summary": "Late pose still has stacked knee height (dy too high).",
+    "next": "Lengthen uncross phase in tracks (more frames before lateral apart). Do not only increase apart-dx."
+  },
+  "need_lateral_apart": {
+    "summary": "Knees closer in height but not wide enough (dx short).",
+    "next": "Slightly raise apart-dx or strengthen lateral segment; keep uncross timing."
+  },
+  "still_crossed_or_kick": {
+    "summary": "Late pose looks crossed, kick, or collapsed trajectory.",
+    "next": "Check track END preview (lime). Reduce aggressive lateral; verify start joints on-body."
+  },
+  "open": {
+    "summary": "open_end geometry looks open.",
+    "next": "Confirm ok/pose_pass; if pass → multi-seed L3 then motor ship path."
+  },
+  "early_drift": {
+    "summary": "Early frames leave start pose too fast / identity drift risk.",
+    "next": "Hold start longer in tracks; shorten total motion amplitude."
+  },
+  "unknown": {
+    "summary": "Unrecognized phase.",
+    "next": "Open gate JSON + compare track END vs video last frame."
+  }
+}
