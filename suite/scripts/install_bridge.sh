@@ -58,15 +58,22 @@ if [[ -d "$SRC_SET" ]]; then
   done
 fi
 
-# Assets
+# Assets (must live under wangp/ — Gradio rejects suite data/cache paths)
 if [[ -d "$WANGP_LAB_CACHE" ]]; then
-  for f in still_675_832x480.jpg still_675_640x352.jpg \
-           tracks_e01_open_hands_t33.npy tracks_e01_open_hands_t49.npy tracks_e01_open_hands_t81.npy; do
+  shopt -s nullglob
+  for f in \
+    still_675_832x480.jpg still_675_640x352.jpg \
+    tracks_e01_open_hands_t33.npy tracks_e01_open_hands_t49.npy tracks_e01_open_hands_t81.npy \
+    tracks_e01_open_hands_t33.vis.jpg tracks_e01_open_hands_t49.vis.jpg tracks_e01_open_hands_t81.vis.jpg \
+    tracks_e01_open_hands_t33.vis_single.jpg tracks_e01_open_hands_t49.vis_single.jpg tracks_e01_open_hands_t81.vis_single.jpg \
+    tracks_e01_open_hands_t49_apart100.npy tracks_e01_open_hands_t49_apart140.npy
+  do
     if [[ -f "$WANGP_LAB_CACHE/$f" ]]; then
       cp -f "$WANGP_LAB_CACHE/$f" "$WGP/mask_outputs/$f"
       echo "asset $f"
     fi
   done
+  shopt -u nullglob
 fi
 
 CFG="$WGP/wgp_config.json"

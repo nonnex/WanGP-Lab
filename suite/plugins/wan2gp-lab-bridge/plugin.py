@@ -228,8 +228,25 @@ class LabBridgePlugin(WAN2GPPlugin):
             if DEFAULT_SUITE_CACHE.is_dir()
             else (DEFAULT_SUITE_ROOT / "data" / "cache" / "wanmove")
         )
-        still_default = str(cache / "still_675_832x480.jpg")
-        tracks_default = str(cache / "tracks_e01_open_hands_t49.npy")
+        # Stage mission assets into wangp/ once at UI build (Gradio CWD = wangp)
+        for name in (
+            "still_675_832x480.jpg",
+            "still_675_640x352.jpg",
+            "tracks_e01_open_hands_t33.npy",
+            "tracks_e01_open_hands_t49.npy",
+            "tracks_e01_open_hands_t81.npy",
+            "tracks_e01_open_hands_t33.vis.jpg",
+            "tracks_e01_open_hands_t49.vis.jpg",
+            "tracks_e01_open_hands_t81.vis.jpg",
+        ):
+            _gradio_safe_path(cache / name)
+
+        still_src = cache / "still_675_832x480.jpg"
+        tracks_src = cache / "tracks_e01_open_hands_t49.npy"
+        still_staged = _gradio_safe_path(still_src if still_src.is_file() else None)
+        tracks_staged = _gradio_safe_path(tracks_src if tracks_src.is_file() else None)
+        still_default = str(still_staged or still_src)
+        tracks_default = str(tracks_staged or tracks_src)
         analysis_default = str(DEFAULT_LAB_ROOT / "_data" / "analysis" / "0009")
         src_still_default = str(
             DEFAULT_LAB_ROOT
@@ -417,20 +434,22 @@ print('wrote', dst)
                 shutil.copy2(out_t, variant)
                 out += f"\nvariant {variant}"
 
-            wgp_mask = DEFAULT_WGP_ROOT / "mask_outputs"
-            try:
-                wgp_mask.mkdir(parents=True, exist_ok=True)
-                if out_t.is_file():
-                    shutil.copy2(out_t, wgp_mask / out_t.name)
-                if still_p.is_file():
-                    shutil.copy2(still_p, wgp_mask / still_p.name)
-            except Exception as e:
-                out += f"\ncopy mask_outputs: {e}"
-
-            vis = _vis_for_tracks(out_t)
+            # Stage all outputs under wangp/ for Gradio + presets
+            out_t_ui = _gradio_safe_path(out_t if out_t.is_file() else None) or out_t
+            still_ui = _gradio_safe_path(still_p if still_p.is_file() else None)
+            for extra in (
+                out_t.with_suffix(".vis.jpg"),
+                out_t.with_name(out_t.name.replace(".npy", ".vis.jpg")),
+                out_t.with_name(out_t.stem + ".vis_single.jpg"),
+            ):
+                _gradio_safe_path(extra if extra.is_file() else None)
+            vis = _vis_for_tracks(out_t_ui if out_t_ui.is_file() else out_t)
+            if still_ui is not None:
+                out += f"\nstaged still={still_ui}"
+            out += f"\nstaged tracks={out_t_ui}"
             return (
                 f"exit={code}\ntracks={out_t}\napart-dx={apart}\n{out}",
-                str(out_t),
+                str(out_t_ui),
                 str(vis) if vis else None,
             )
 
