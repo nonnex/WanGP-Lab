@@ -71,11 +71,13 @@ if command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -qE ":${PORT}\\b"
   fi
 fi
 
+PY="$WANGP_ROOT/.venv/bin/python"
+# activate for PATH deps (ffmpeg libs etc.) but always exec absolute PY
 # shellcheck source=/dev/null
-source .venv/bin/activate
+source .venv/bin/activate 2>/dev/null || true
 export AIIMGSEQ_LAB_ROOT="$LAB_MOTOR_ROOT"
 export AIIMGSEQ_WANGP_ROOT="$WANGP_ROOT"
-export WANGP_LAB_ROOT WANGP_LAB_CACHE WANGP_LAB_EXPERIMENTS
+export WANGP_LAB_ROOT WANGP_LAB_CACHE WANGP_LAB_EXPERIMENTS WANGP_LAB_OUTPUTS
 export GRADIO_SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
 export GRADIO_SERVER_PORT="${PORT}"
 
@@ -83,6 +85,7 @@ echo "WanGP-Lab UI | profile=$PROFILE attention=$ATTN port=$PORT"
 echo "  suite  $WANGP_LAB_ROOT"
 echo "  wangp  $WANGP_ROOT"
 echo "  motor  $LAB_MOTOR_ROOT"
+echo "  python $PY"
 echo "  open   http://localhost:${PORT}  (Windows browser OK)"
 echo "  Lab Bridge tab · lab_wanmove_e01 · still+tracks under data/cache/wanmove/"
 
@@ -97,4 +100,4 @@ if [[ "$OPEN_BROWSER" == "1" ]]; then
   ) &
 fi
 
-exec python wgp.py --profile "$PROFILE" --attention "$ATTN"
+exec "$PY" wgp.py --profile "$PROFILE" --attention "$ATTN"
