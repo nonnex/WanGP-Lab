@@ -81,6 +81,7 @@ def build_e01_open_tracks(
     src_h: int | None,
     apart_dx: float = 90.0,
     move_hands: bool = True,
+    uncross_frac: float = 0.70,
 ) -> np.ndarray:
     """T frames, N=6: Lknee,Rknee,Lankle,Rankle,Rwrist,Lwrist (pixel coords)."""
     sw = int(src_w or width)
@@ -129,12 +130,18 @@ def build_e01_open_tracks(
         ]
     )
 
+    # Phase split: uncross (lower top knee) then apart (knees open L/R).
+    # Longer uncross_frac (e.g. 0.70) = more time leveling knees before apart.
+    uf = float(np.clip(uncross_frac, 0.35, 0.85))
+    af = 1.0 - uf
+    hand_end = min(0.55, uf * 0.75)
+
     n_pts = 6 if move_hands else 4
     tracks = np.zeros((T, n_pts, 2), dtype=np.float32)
     for ti in range(T):
         u = ti / max(T - 1, 1)
-        if u <= 0.55:
-            a = _ease(u / 0.55)
+        if u <= uf:
+            a = _ease(u / uf)
             lk = lk0.copy()
             rk = rk0.copy()
             if left_on_top:
@@ -145,12 +152,12 @@ def build_e01_open_tracks(
                 lk[1] = (1 - 0.3 * a) * lk0[1] + 0.3 * a * y_open
             la = (1 - a) * la0 + a * np.array([lk[0], la0[1]])
             ra = (1 - a) * ra0 + a * np.array([rk[0], ra0[1]])
-            # hands leave knee early (first half of motion)
-            ah = _ease(min(1.0, u / 0.4))
+            # hands leave knee during uncross
+            ah = _ease(min(1.0, u / max(hand_end, 1e-6)))
             rw = (1 - ah) * rw0 + ah * rw1
             lw = (1 - ah) * lw0 + ah * lw1
         else:
-            a = _ease((u - 0.55) / 0.45)
+            a = _ease((u - uf) / max(af, 1e-6))
             lk_m = np.array([lk0[0], y_open])
             rk_m = np.array([rk0[0], y_open])
             lk = (1 - a) * lk_m + a * lk1
@@ -256,6 +263,12 @@ def main() -> int:
     ap.add_argument("--width", type=int, default=832)
     ap.add_argument("--height", type=int, default=480)
     ap.add_argument("--apart-dx", type=float, default=100.0)
+    ap.add_argument(
+        "--uncross-frac",
+        type=float,
+        default=0.70,
+        help="Fraction of clip spent lowering top knee before apart (0.35–0.85). Was hard-coded 0.55.",
+    )
     ap.add_argument("--still", type=Path, default=None, help="for --vis overlay; also used as src size if --src-still set")
     ap.add_argument(
         "--src-still",
@@ -297,6 +310,7 @@ def main() -> int:
         src_w=src_w,
         src_h=src_h,
         apart_dx=args.apart_dx,
+        uncross_frac=args.uncross_frac,
     )
     # sanity: start knees should land near body center of 832x480 still
     lx0, ly0 = float(tracks[0, 0, 0]), float(tracks[0, 0, 1])
@@ -318,6 +332,7 @@ def main() -> int:
         "analysis": str(args.analysis),
         "src_wh": [src_w, src_h],
         "apart_dx": args.apart_dx,
+        "uncross_frac": args.uncross_frac,
         "points": ["L_knee", "R_knee", "L_ankle", "R_ankle", "R_wrist", "L_wrist"],
         "wan2gp": "custom_guide npy [T,N,2] pixel coords (hands leave knee)",
     }

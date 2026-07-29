@@ -20,8 +20,8 @@
   },
   "track_build": {
     "enabled": true,
-    "analysis": "",
-    "src_still": "",
+    "analysis": "data/cache/wanmove/analysis/<id>",
+    "src_still": "data/cache/wanmove/src/<still>.jpg",
     "width": 832,
     "height": 480,
     "apart_dx_default": 100,

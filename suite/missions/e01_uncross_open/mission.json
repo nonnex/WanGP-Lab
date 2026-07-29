@@ -1,6 +1,6 @@
 {
   "id": "e01_uncross_open",
-  "title": "e01 · leg uncross → open (675)",
+  "title": "e01 \u00b7 leg uncross \u2192 open (675)",
   "description": "Primary hard-case: seated uncross to open knees; then later side-switch toward 677.",
   "version": 1,
   "gate": {
@@ -20,11 +20,12 @@
   },
   "track_build": {
     "enabled": true,
-    "analysis": "/home/nick/AI/Projects/ai-img-seq-kimi/_data/analysis/0009",
-    "src_still": "/home/nick/AI/Projects/ai-img-seq-kimi/_src/0009_still_day21_10_sophia_dylan_evening_675.jpeg",
+    "analysis": "data/cache/wanmove/analysis/0009",
+    "src_still": "data/cache/wanmove/src/0009_still_day21_10_sophia_dylan_evening_675.jpeg",
     "width": 832,
     "height": 480,
     "apart_dx_default": 100,
+    "uncross_frac": 0.7,
     "script": "suite/tools/mhr70_to_wanmove_tracks.py",
     "out_pattern": "tracks_e01_open_hands_t{frames}.npy"
   },
@@ -42,7 +43,7 @@
       "sample_solver": "unipc"
     },
     "L1": {
-      "label": "Move smoke 33×8",
+      "label": "Move smoke 33\u00d78",
       "model": "lab_wanmove_e01_smoke",
       "frames": 33,
       "steps": 8,
@@ -54,7 +55,7 @@
       "sample_solver": "unipc"
     },
     "L2": {
-      "label": "Move 49×16",
+      "label": "Move 49\u00d716",
       "model": "lab_wanmove_e01",
       "frames": 49,
       "steps": 16,
@@ -71,12 +72,20 @@
   "output_filename": "lab_wanmove_e01",
   "research": {
     "best_seed": 7,
-    "best_progress": 0.86,
-    "best_phase": "uncrossing_height",
-    "avoid": ["apart_dx=140 alone"]
+    "best_progress": 1.0,
+    "best_phase": "open",
+    "best_video": "_outputs/lab_wanmove_e01(2).mp4",
+    "best_level": "L1_or_UI_33f",
+    "first_pass_ts": "2026-07-29T17:34",
+    "tracks": "uncross_frac=0.70 apart_dx=100 t33",
+    "avoid": [
+      "apart_dx=140 alone"
+    ]
   },
   "notes": [
-    "apart-dx 100 default; 140 overshot dy",
-    "Ship only after open_end PASS"
+    "FIRST open_end PASS 2026-07-29 lab_wanmove_e01(2).mp4",
+    "late dy=1.86 dx=87.97 progress=1.0",
+    "uncross_frac 0.70 + L1 33f worked \u2014 confirm L2 once then L3",
+    "apart-dx 100 default; 140 overshot dy historically"
   ]
 }

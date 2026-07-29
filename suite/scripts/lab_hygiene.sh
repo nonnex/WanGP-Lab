@@ -160,7 +160,7 @@ check_root_clean() {
     local b
     b=$(basename "$f")
     case "$b" in
-      suite|wangp|data|config|_outputs|_logs|.kilo|.vscode|.git|.gitignore|.kilocodeignore|.rgignore|AGENTS.md|README.md|WanGP-Lab.code-workspace) continue ;;
+      suite|wangp|motor|data|config|_outputs|_logs|.kilo|.vscode|.git|.gitignore|.kilocodeignore|.rgignore|AGENTS.md|README.md|WanGP-Lab.code-workspace) continue ;;
       *)
         if [[ -f "$f" ]]; then
           note_dirty "root file: $b"

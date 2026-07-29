@@ -1,0 +1,12 @@
+{
+  "backend": "da2_small",
+  "model_id": "depth-anything/Depth-Anything-V2-Small-hf",
+  "shape": [
+    1080,
+    1920
+  ],
+  "dtype": "float32",
+  "min": 0.1708637773990631,
+  "max": 5.56502103805542,
+  "kind": "transformers_depth"
+}

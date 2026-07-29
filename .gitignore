@@ -79,18 +79,31 @@ data/cache/**/*.mp4
 *.wav
 *.mp3
 
-# Mission assets in suite cache
+# Mission assets in suite cache (stills, tracks, minimal analysis)
 !data/cache/wanmove/
 !data/cache/wanmove/**
 !data/cache/wanmove/**/*.jpg
+!data/cache/wanmove/**/*.jpeg
+!data/cache/wanmove/**/*.png
 !data/cache/wanmove/**/*.npy
+!data/cache/wanmove/**/*.npz
 !data/cache/wanmove/**/*.json
 !data/cache/wanmove/**/*.md
 !data/cache/wanmove/**/.gitkeep
 !data/experiments/.gitkeep
 
-# Nested WanGP clone — entirely local
+# Analysis bulk (rebuildable / not needed for tracks) — keep only sam3d_body.npz + meta
+data/cache/wanmove/analysis/**/depth.npy
+data/cache/wanmove/analysis/**/depth_vis.png
+data/cache/wanmove/analysis/**/masks/
+data/cache/wanmove/analysis/**/sam3_overlay.png
+data/cache/wanmove/analysis/**/sam3d_overlay.png
+
+# Nested WanGP clone — entirely local (includes .venv and rollback venvs)
 wangp/
+
+# Motor host tree (pose_gate + ~9GB venv) — local only, not git
+/motor/
 
 # Maps / build
 **/*.js.map

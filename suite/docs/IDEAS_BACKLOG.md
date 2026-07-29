@@ -39,3 +39,18 @@
 - Lab Bridge 0.5 mission dropdown (not e01-hardcoded)
 - image_start as list (Motion Designer style)
 - run_mission.sh headless by mission id
+
+## Done (researcher UX 0.6)
+
+- Gate HUD top (PASS/FAIL + next-action + dy/dx)
+- L1 one-click → fill form + jump Media Generator
+- uncross-frac control in tracks build (default 0.70)
+- Frames default 33 (L1); L2 secondary button
+- Last gated video preview; leaderboard collapsed
+- Policy copy: L1 iterate / L2 candidate only
+
+## Done (iterate policy)
+
+- `suite/docs/ITERATE_POLICY.md` — KILL/HOLD/PROMOTE/PASS, false-reject rules
+- `mission_lib.iterate_verdict` + Gate HUD verdict line
+- SUITE_CRITICAL / AGENTS linked

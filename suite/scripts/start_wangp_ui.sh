@@ -78,28 +78,48 @@ source .venv/bin/activate 2>/dev/null || true
 export AIIMGSEQ_LAB_ROOT="$LAB_MOTOR_ROOT"
 export AIIMGSEQ_WANGP_ROOT="$WANGP_ROOT"
 export WANGP_LAB_ROOT WANGP_LAB_CACHE WANGP_LAB_EXPERIMENTS WANGP_LAB_OUTPUTS
-export GRADIO_SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
-export GRADIO_SERVER_PORT="${PORT}"
-# Allow Lab Bridge to show stills/tracks/previews from suite paths
-export GRADIO_ALLOWED_PATHS="${GRADIO_ALLOWED_PATHS:-${WANGP_LAB_ROOT}/data/cache/wanmove,${WANGP_LAB_ROOT}/_outputs,${WANGP_LAB_ROOT}/data/experiments,${LAB_MOTOR_ROOT}/_data,${LAB_MOTOR_ROOT}/_src}"
 
-echo "WanGP-Lab UI | profile=$PROFILE attention=$ATTN port=$PORT"
+# WanGP reads SERVER_NAME / SERVER_PORT (not GRADIO_SERVER_*). Default listen all ifaces.
+export SERVER_NAME="${SERVER_NAME:-0.0.0.0}"
+export SERVER_PORT="${SERVER_PORT:-$PORT}"
+export GRADIO_SERVER_NAME="${GRADIO_SERVER_NAME:-$SERVER_NAME}"
+export GRADIO_SERVER_PORT="${GRADIO_SERVER_PORT:-$SERVER_PORT}"
+# Allow Lab Bridge to show stills/tracks/previews from suite paths
+export GRADIO_ALLOWED_PATHS="${GRADIO_ALLOWED_PATHS:-${WANGP_LAB_ROOT}/data/cache/wanmove,${WANGP_LAB_ROOT}/_outputs,${WANGP_LAB_ROOT}/data/experiments}"
+
+echo "WanGP-Lab UI | profile=$PROFILE attention=$ATTN port=$SERVER_PORT bind=$SERVER_NAME"
 echo "  suite  $WANGP_LAB_ROOT"
 echo "  wangp  $WANGP_ROOT"
-echo "  motor  $LAB_MOTOR_ROOT"
+echo "  gate   $LAB_MOTOR_ROOT  (pose_gate venv)"
+echo "  cache  $WANGP_LAB_CACHE"
 echo "  python $PY"
-echo "  open   http://localhost:${PORT}  (Windows browser OK)"
-echo "  Lab Bridge tab · lab_wanmove_e01 · still+tracks under data/cache/wanmove/"
+STACK_FP="$("$PY" -c 'import sys,torch; print("py%s.%s torch%s" % (sys.version_info.major, sys.version_info.minor, torch.__version__))' 2>/dev/null || echo '?')"
+echo "  stack  $STACK_FP"
+echo "  open   http://localhost:${SERVER_PORT}  (Windows browser OK)"
+echo "  Lab Bridge · mission assets under data/cache/wanmove/"
 
 if [[ "$OPEN_BROWSER" == "1" ]]; then
   (
     sleep 4
     if command -v wslview >/dev/null 2>&1; then
-      wslview "http://localhost:${PORT}" >/dev/null 2>&1 || true
+      wslview "http://localhost:${SERVER_PORT}" >/dev/null 2>&1 || true
     elif command -v powershell.exe >/dev/null 2>&1; then
-      powershell.exe -NoProfile -Command "Start-Process 'http://localhost:${PORT}'" >/dev/null 2>&1 || true
+      powershell.exe -NoProfile -Command "Start-Process 'http://localhost:${SERVER_PORT}'" >/dev/null 2>&1 || true
     fi
   ) &
 fi
 
-exec "$PY" wgp.py --profile "$PROFILE" --attention "$ATTN"
+# Explicit CLI: --listen → 0.0.0.0; --server-port (wgp ignores bare GRADIO_* alone)
+WGP_ARGS=(wgp.py --profile "$PROFILE" --attention "$ATTN" --server-port "$SERVER_PORT")
+if [[ "$SERVER_NAME" == "0.0.0.0" || "$SERVER_NAME" == "*" ]]; then
+  WGP_ARGS+=(--listen)
+else
+  WGP_ARGS+=(--server-name "$SERVER_NAME")
+fi
+
+# ORT WSL DRM: empty fake vgem card0 so discovery does not WARN (see suite/docs/ORT_WSL_DRM.md)
+WRAP="$ROOT/suite/scripts/with_ort_wsl_env.sh"
+if [[ -f "$WRAP" ]]; then
+  exec bash "$WRAP" -- "$PY" "${WGP_ARGS[@]}"
+fi
+exec "$PY" "${WGP_ARGS[@]}"

@@ -50,13 +50,25 @@ Bridge install: `suite/scripts/install_bridge.sh` → copies into `wangp/`.
 
 ## Iterate ladder
 
+**Default experiment = L1 (direction).** L2 confirms amplitude — not every tweak, but  
+**never drop a track on L1 FAIL alone** (false reject). Full policy: [ITERATE_POLICY.md](./ITERATE_POLICY.md).
+
 ```
-L0  FastWan smoke           — UI alive?
-L1  Move smoke 33f×8        — tracks on-body?
-L2  Move e01 49f×16         — open_end gate
-L3  Multi-seed / track A/B  — best progress
+L0  FastWan smoke           — UI alive only (NOT pose signal)
+L1  Move smoke 33f×8        — direction screen → KILL | HOLD | PROMOTE
+L2  Move 49f×16 seed7       — amplitude + Gate SoT (required after HOLD/PROMOTE)
+L3  Multi-seed / track A/B  — after ≥1 solid L2
 L4  Lab e12 + ship          — only if open_end PASS
 ```
+
+| Verdict | Action |
+|---------|--------|
+| **KILL** | Wrong direction (kick/freeze/bad END) — no L2 |
+| **HOLD** | Ambiguous / “fehlt Rest” — **one L2** before drop |
+| **PROMOTE** | Direction OK — L2 now |
+| **PASS** | Gate ok on L2+ — ship path |
+
+Ship signal = gate PASS on L2+, never L0/L1 alone.
 
 ---
 
@@ -73,3 +85,6 @@ bash suite/scripts/gate_output.sh <mp4>
 ```
 
 Host: Profile **4**, attention **sage**, quant **int8**, 832×480 Move.
+
+ORT DRM warning on WSL (`card0/device/vendor`): see [ORT_WSL_DRM.md](./ORT_WSL_DRM.md) —
+not a dead GPU; `with_ort_wsl_env.sh` handles discovery cleanly.

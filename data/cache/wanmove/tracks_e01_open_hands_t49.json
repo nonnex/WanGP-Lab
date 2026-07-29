@@ -1,5 +1,5 @@
 {
-  "out": "/home/nick/AI/Projects/WanGP-Lab/data/cache/wanmove/tracks_e01_open_hands_t49.npy",
+  "out": "data/cache/wanmove/tracks_e01_open_hands_t49.npy",
   "shape": [
     49,
     6,
@@ -14,6 +14,7 @@
     1080
   ],
   "apart_dx": 100.0,
+  "uncross_frac": 0.7,
   "points": [
     "L_knee",
     "R_knee",

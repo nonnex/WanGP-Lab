@@ -317,9 +317,96 @@ def leaderboard_md(exp: Path | None = None, n: int = 10) -> str:
     return "\n".join(out)
 
 
-def format_gate_summary(gate: dict[str, Any]) -> str:
+def iterate_verdict(
+    gate: dict[str, Any] | None,
+    *,
+    level: str | None = None,
+) -> dict[str, str]:
+    """Cheap-run policy: KILL | HOLD | PROMOTE | PASS (see suite/docs/ITERATE_POLICY.md).
+
+    L1 FAIL must not auto-KILL — HOLD/PROMOTE avoid false reject when L2 could still work.
+    """
+    if not gate:
+        return {
+            "verdict": "HOLD",
+            "reason": "no gate yet",
+            "next": "Run L1 → Gate last. Do not discard tracks without a gated Move run.",
+        }
+    ok = bool(gate.get("ok") or gate.get("pose_pass"))
+    if ok:
+        return {
+            "verdict": "PASS",
+            "reason": "open_end ok",
+            "next": "L3 multi-seed / ship path. Do not burn more L1 on this variant.",
+        }
+
+    phase = str(gate.get("phase") or (str(gate.get("note") or "").split(":")[-1] or "unknown"))
+    if ":" in phase:
+        phase = phase.split(":")[-1]
+    try:
+        progress = float(gate.get("progress") if gate.get("progress") is not None else -1.0)
+    except (TypeError, ValueError):
+        progress = -1.0
+
+    lvl = (level or "").upper()
+    hint = gate_next_action(phase, gate.get("note"))
+
+    # Soft floors — heuristics for HUD, not a second geometric gate
+    hold_floor = 0.45
+    promote_floor = 0.55
+
+    if phase in ("still_crossed_or_kick",) and progress >= 0.0 and progress < 0.35:
+        # Low progress + crossed/kick phase → likely direction fail, but still HOLD on L1
+        # so one L2 can disprove false reject; KILL only after L2 agrees or video kick.
+        if lvl.startswith("L2") or lvl in ("L3", "L4"):
+            return {
+                "verdict": "KILL",
+                "reason": f"L2+ still `{phase}` @ {progress:.2f}",
+                "next": "Direction failed at quality. Fix track END / uncross order; do not seed-spam.",
+            }
+        return {
+            "verdict": "HOLD",
+            "reason": f"L1 `{phase}` @ {progress:.2f} — may be false reject",
+            "next": "Glance video. If kick/freeze/wrong order → KILL. Else **one L2 seed7** before drop.",
+        }
+
+    if phase in ("uncrossing_height", "need_lateral_apart") or progress >= promote_floor:
+        return {
+            "verdict": "PROMOTE",
+            "reason": f"`{phase}` progress {progress:.2f}" if progress >= 0 else phase,
+            "next": "Direction/amplitude path. Run **L2 49×16 seed7** once; compare Δ progress. "
+            + str(hint.get("next") or ""),
+        }
+
+    if progress >= hold_floor:
+        return {
+            "verdict": "HOLD",
+            "reason": f"mid progress {progress:.2f} `{phase}`",
+            "next": "Ambiguous — **one L2 seed7** required before discarding this track variant.",
+        }
+
+    if progress >= 0.0 and progress < hold_floor:
+        return {
+            "verdict": "HOLD" if not lvl.startswith("L2") else "KILL",
+            "reason": f"low progress {progress:.2f} `{phase}`",
+            "next": (
+                "Video check: no uncross → KILL. Any uncross order → L2 once."
+                if not lvl.startswith("L2")
+                else "L2 low + bad phase — rework tracks; stop L1 seed spam."
+            ),
+        }
+
+    return {
+        "verdict": "HOLD",
+        "reason": phase or "unknown",
+        "next": str(hint.get("next") or "Inspect video + gate JSON; default = one L2 before drop."),
+    }
+
+
+def format_gate_summary(gate: dict[str, Any], *, level: str | None = None) -> str:
     phase = gate.get("phase") or (str(gate.get("note") or "").split(":")[-1] or None)
     hint = gate_next_action(phase, gate.get("note"))
+    verdict = iterate_verdict(gate, level=level)
     block = {
         "ok": gate.get("ok"),
         "pose_pass": gate.get("pose_pass"),
@@ -327,6 +414,7 @@ def format_gate_summary(gate: dict[str, Any]) -> str:
         "phase": phase,
         "note": gate.get("note"),
         "late_open": gate.get("late_open"),
+        "iterate": verdict,
         "next_action": hint,
     }
     return json.dumps(block, indent=2)

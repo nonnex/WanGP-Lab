@@ -17,6 +17,10 @@ if [[ -f "$WANGP_ROOT/wgp_config.json" ]]; then
   python3 -c "import json;d=json.load(open('$WANGP_ROOT/wgp_config.json'));print('plugins',d.get('enabled_plugins'));print('profile',d.get('profile'),d.get('attention_mode'))"
 fi
 echo "suite cache:"; ls "$WANGP_LAB_CACHE" 2>/dev/null | head -15
+if [[ -f "$ROOT/suite/scripts/with_ort_wsl_env.sh" ]]; then
+  echo "ort-drm:"
+  bash "$ROOT/suite/scripts/with_ort_wsl_env.sh" --diagnose 2>&1 | sed 's/^/  /'
+fi
 
 echo "hygiene:"
 if bash "$ROOT/suite/scripts/lab_hygiene.sh" --check --quiet 2>/dev/null; then
